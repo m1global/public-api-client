@@ -1,0 +1,27 @@
+import { Swap } from "../interfaces";
+import { getFromAPI } from "./get-from-api";
+
+/**********************************************************************************
+ * Typescript function that calls the M1 API Ethereum endpoint for swaps and
+ *  returns a Swap object.
+ * 
+ * @param {string} swapperAddress The address of a depositor.
+ * @param {booelan} isTestnet Flag to switch betwen Sepolia and Mainnet.
+ * 
+ * @returns {Promise<Swap | undefined>} A Swap object or undefined 
+ *  if an error occurs.
+ * 
+ * @dev Used for troubleshooting.
+ */
+export async function getSwap(
+    swapperAddress: string,
+    isTestnet = false): Promise<Swap | undefined> {
+
+    let url = `${process.env.M1_API_BASE_URL}/ethereum/broker/swaps/${swapperAddress}`;
+
+    if (isTestnet) {
+        url = `${url}?isTestnet=true`;
+    }
+
+    return await getFromAPI<Swap>(url, true)
+}

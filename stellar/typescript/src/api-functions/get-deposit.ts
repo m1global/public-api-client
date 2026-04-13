@@ -1,0 +1,34 @@
+import { Deposit } from "../interfaces";
+import { getFromAPI } from "./get-from-api";
+
+/**********************************************************************************
+ * Typescript function that calls the M1 API Stellar endpoint for deposits and
+ *  returns a Deposit object.
+ * 
+ * @param {string} depositorAddress The address of a depositor.
+ * @param {booelan} isTestnet Flag to switch betwen Testnet and Public.
+ * 
+ * @returns {Promise<Deposit | undefined>} A Deposit object or undefined 
+ *  if an error occurs.
+ * 
+ * @dev Used for troubleshooting.
+ */
+export async function getDeposit(
+    depositorAddress: string,
+    isTestnet = false): Promise<Deposit | undefined> {
+
+    // The base url for the M1 API must be added to the environment.
+    if (!process.env.M1_API_BASE_URL) {
+        console.error("no M1_API_BASE_URL set in environemnt!");
+        return;
+    }
+
+    // The API endpoint to call.
+    let url = `${process.env.M1_API_BASE_URL}/stellar/broker/deposits/${depositorAddress}`;
+
+    if (isTestnet) {
+        url = `${url}?isTestnet=true`;
+    }
+
+    return await getFromAPI<Deposit>(url, true)
+}

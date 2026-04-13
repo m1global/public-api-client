@@ -1,0 +1,27 @@
+{
+    "name": "canton-client",
+    "version": "1.0.0",
+    "description": "Sample Canton client scripts",
+    "main": "index.js",
+    "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "deposit": "node dist/deposit.js",
+        "redeem": "node dist/redeem.js",
+        "list-holdings": "node dist/listAllMyUSDM1Holdings.js",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "type": "commonjs",
+    "dependencies": {
+        "axios": "^1.12.2",
+        "commander-ts": "^0.2.0",
+        "dotenv": "^17.2.3",
+        "node": "22.20.0",
+        "typescript": "^5.9.3"
+    },
+    "devDependencies": {
+        "@types/node": "^24.7.2"
+    }
+}
