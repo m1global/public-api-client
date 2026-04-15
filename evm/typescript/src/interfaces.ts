@@ -18,7 +18,7 @@ export interface Erc20 {
     address: string;
     symbol?: string;
     name?: string;
-    decimals?: number;
+    decimals?: number | string;
 }
 
 export interface Collateral extends Erc20 {
@@ -164,4 +164,3 @@ export type RedeemPermit = {
     seq: bigint;
     signature?: string;
 };
-

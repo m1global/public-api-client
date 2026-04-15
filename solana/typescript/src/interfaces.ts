@@ -14,7 +14,7 @@ export interface SolanaToken {
     name?: string;
     symbol?: string;
     mintAddress: string;
-    decimals?: number;
+    decimals?: number | string;
     isInterestBearing?: boolean;
     feeRate?: bigint,
     beneficiary?: string;

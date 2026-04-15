@@ -8,6 +8,9 @@
     "deposit": "node dist/deposit.js",
     "swap": "node dist/swap.js",
     "redeem": "node dist/redeem.js",
+    "atomic-deposit": "node dist/atomic-deposit.js",
+    "atomic-swap": "node dist/atomic-swap.js",
+    "atomic-redeem": "node dist/atomic-redeem.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
