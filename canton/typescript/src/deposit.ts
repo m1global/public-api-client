@@ -468,7 +468,7 @@ function toDepositSetupFromBundle(bundle: CantonBrokerConfig, collateral: Canton
     // Step 11: Wait for indexer/API processing, then resolve the newly minted
     // customer USDM1 Holding that results from ProcessDepositAtomic.
     // -------------------------------------------------------------------------
-    const INDEXER_WAIT_MS = 20_000;
+    const INDEXER_WAIT_MS = 60_000;
     console.info(`\n[11/11] waiting ${INDEXER_WAIT_MS}ms for indexer/API processing...`);
     await sleep(INDEXER_WAIT_MS);
 

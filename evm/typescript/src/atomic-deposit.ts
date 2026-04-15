@@ -267,9 +267,9 @@ const options = pgm.opts();
     const txReceipt = await txResp.wait();
     console.info(`deposit confirmed in ${txReceipt?.blockNumber}`);
 
-    // Wait for automatic fulfillment and indexer state to catch up.
-    console.info("sleeping for 3 minutes to wait for automatic fulfillment...");
-    await sleep(180 * 1000);
+    // Give the indexer a brief moment to catch up after the atomic settlement tx.
+    console.info("sleeping for 15 seconds to wait for indexer state to catch up...");
+    await sleep(15 * 1000);
 
     // Re-fetch the balances.
     // mock should be 0.

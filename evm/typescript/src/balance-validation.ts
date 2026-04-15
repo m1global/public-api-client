@@ -19,9 +19,9 @@ interface RedemptionValidationArgs {
     after: BalanceSnapshot;
     inputToken: string;
     inputAmount: bigint;
-    inputDecimals: number | undefined;
+    inputDecimals: number | string | undefined;
     outputToken: string;
-    outputDecimals: number | undefined;
+    outputDecimals: number | string | undefined;
     requireOutputIncrease: boolean;
 }
 
@@ -56,6 +56,21 @@ function scaleAmount(amount: bigint, fromDecimals: number, toDecimals: number): 
 
 function getSnapshotBalance(snapshot: BalanceSnapshot, token: string): bigint {
     return snapshot[token] ?? 0n;
+}
+
+function normalizeDecimals(value: number | string | undefined): number | undefined {
+    if (value == null) {
+        return undefined;
+    }
+    if (typeof value === "number") {
+        return Number.isFinite(value) ? value : undefined;
+    }
+    const trimmed = value.trim();
+    if (trimmed.length === 0) {
+        return undefined;
+    }
+    const parsed = Number(trimmed);
+    return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 export function readBalance(balance: { balance?: string } | undefined, token: string): bigint {
@@ -112,7 +127,10 @@ export function validateOneToOneRedemption(args: RedemptionValidationArgs): void
         return;
     }
 
-    if (args.inputDecimals == null || args.outputDecimals == null) {
+    const inputDecimals = normalizeDecimals(args.inputDecimals);
+    const outputDecimals = normalizeDecimals(args.outputDecimals);
+
+    if (inputDecimals == null || outputDecimals == null) {
         if (outputDelta <= 0n) {
             warn(
                 args.chainTag,
@@ -124,7 +142,7 @@ export function validateOneToOneRedemption(args: RedemptionValidationArgs): void
         return;
     }
 
-    const expectedOutputDelta = scaleAmount(args.inputAmount, args.inputDecimals, args.outputDecimals);
+    const expectedOutputDelta = scaleAmount(args.inputAmount, inputDecimals, outputDecimals);
     if (outputDelta !== expectedOutputDelta) {
         warn(
             args.chainTag,

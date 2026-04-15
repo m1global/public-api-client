@@ -4,7 +4,9 @@ import {
     Allowance,
     Balance,
     Deposit,
+    StellarAtomicBrokerConfig,
     StellarBrokerConfig,
+    StellarPriceAttestation,
     Redemption,
     Swap,
     TxResult,
@@ -25,7 +27,8 @@ import { logRequest, logResponse } from "./util";
  * @returns {Promise<Balance | undefined>} A Balance object or undefined if an error
  *  occurs.
  */
-export async function getFromAPI<T extends StellarBrokerConfig | Trustline | Allowance |
+export async function getFromAPI<T extends StellarBrokerConfig | StellarAtomicBrokerConfig |
+    StellarPriceAttestation | Trustline | Allowance |
     Deposit | Redemption | Swap | Balance | WhitelistStatus | TxResult>(
         url: string,
         isSecure = true): Promise<T | undefined> {
