@@ -16,6 +16,7 @@ import { approve } from "./api-functions/approve";
 import { getAllowance } from "./api-functions/get-allowance";
 import { getBalance } from "./api-functions/get-balance";
 import { safeStringify, sleep } from "./api-functions/util";
+import { getAtomicBrokerWhitelistStatus } from "./api-functions/get-atomic-broker-whitelist-status";
 import { getWhitelistStatus } from "./api-functions/get-whitelist-status";
 import { getAtomicBrokerConfig } from "./api-functions/get-atomic-broker-config";
 import { getUsdm1PriceAttestation } from "./api-functions/get-usdm1-price-attestation";
@@ -96,23 +97,32 @@ const options = pgm.opts();
     // Init the signer.
     const signer = wallet.connect(provider);
 
-    // First things first, check the whitelist status.
-    var whitelistStatus: WhitelistStatus | undefined;
+    // First things first, check both whitelist systems.
+    let whitelistStatus: WhitelistStatus | undefined;
+    let atomicWhitelistStatus: WhitelistStatus | undefined;
     try {
         whitelistStatus = await getWhitelistStatus("ethereum-sepolia", wallet.address);
+        atomicWhitelistStatus = await getAtomicBrokerWhitelistStatus(wallet.address, true);
     } catch (err) {
         if ((err as Error).message == "unauthorized") {
-            console.error("Your JWT is invalid.")
+            console.error("Your JWT is invalid.");
         } else {
-            console.info(`an error occurred: ${err}`)
+            console.error(`an error occurred: ${err}`);
         }
         return;
     }
 
     if (!whitelistStatus ||
         !whitelistStatus.status ||
-        whitelistStatus?.status.toLowerCase() != "Whitelisted".toLocaleLowerCase()) {
-        console.error(`Address ${wallet.address} on ethereum-sepolia is not whitelisted. Contact M1 Global for access.`);
+        whitelistStatus.status.toLowerCase() != "Whitelisted".toLocaleLowerCase()) {
+        console.error(`Address ${wallet.address} on ethereum-sepolia is not whitelisted in the Solana-backed M1 whitelist. Contact M1 Global for access.`);
+        return;
+    }
+
+    if (!atomicWhitelistStatus ||
+        !atomicWhitelistStatus.status ||
+        atomicWhitelistStatus.status.toLowerCase() != "Whitelisted".toLocaleLowerCase()) {
+        console.error(`Address ${wallet.address} is not whitelisted in the Ethereum atomic broker contract whitelist. Contact M1 Global for access.`);
         return;
     }
 
@@ -254,8 +264,8 @@ const options = pgm.opts();
     console.info(safeStringify(redemptionRecord));
 
     // Sleep briefly to allow the RPC node to reflect the confirmed state.
-    console.info("sleeping 5 seconds for RPC node to reflect confirmed state...");
-    await sleep(5000);
+    console.info("sleeping 120 seconds for redemption processing.");
+    await sleep(120000);
 
     // Re-fetch the balances.
     // USDM0 should be 0.

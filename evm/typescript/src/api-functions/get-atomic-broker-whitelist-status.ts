@@ -28,5 +28,5 @@ export async function getAtomicBrokerWhitelistStatus(
         url += "?isTestnet=true"
     }
 
-    return await getFromAPI<WhitelistStatus>(url, false);
+    return await getFromAPI<WhitelistStatus>(url, true);
 }
