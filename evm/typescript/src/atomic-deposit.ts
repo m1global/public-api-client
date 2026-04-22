@@ -17,7 +17,6 @@ import { faucet } from "./api-functions/faucet";
 import { getAllowance } from "./api-functions/get-allowance";
 import { getBalance } from "./api-functions/get-balance";
 import { sleep } from "./api-functions/util";
-import { getAtomicBrokerWhitelistStatus } from "./api-functions/get-atomic-broker-whitelist-status";
 import { getWhitelistStatus } from "./api-functions/get-whitelist-status";
 import { getUsdm1PriceAttestation } from "./api-functions/get-usdm1-price-attestation";
 import { atomicDeposit } from "./api-functions/atomic-deposit";
@@ -44,11 +43,13 @@ import {
  * which is subsequently signed and submitted.
  * 
  * Uses a preconfigured wallet that is created by the create-wallet.ts node script.
- * The public address of this wallet MUST be whitelisted by M1 Global,
- * otherwise the deposit will fail.
+ * The public address of this wallet must be whitelisted by M1 Global in the
+ * shared Solana-backed whitelist used by attestation/permit generation,
+ * otherwise the deposit request will fail before settlement.
  * 
  * Create the wallet first and then contact M1 Global for your client JWT for API access
- * and let us know what your Sepolia wallet public address is.
+ * and let us know what your Sepolia wallet public address is if permit issuance
+ * for your account is required operationally.
  * 
  * Must be transpiled (npm run build).
  */
@@ -93,12 +94,11 @@ const options = pgm.opts();
     // Init the signer.
     const signer = wallet.connect(provider);
 
-    // First things first, check both whitelist systems.
+    // First things first, check the Solana-backed M1 whitelist used by the API
+    // for attestation and permit issuance.
     let whitelistStatus: WhitelistStatus | undefined;
-    let atomicWhitelistStatus: WhitelistStatus | undefined;
     try {
         whitelistStatus = await getWhitelistStatus("ethereum-sepolia", wallet.address);
-        atomicWhitelistStatus = await getAtomicBrokerWhitelistStatus(wallet.address, true);
     } catch (err) {
         if ((err as Error).message == "unauthorized") {
             console.error("Your JWT is invalid.");
@@ -115,14 +115,7 @@ const options = pgm.opts();
         return;
     }
 
-    if (!atomicWhitelistStatus ||
-        !atomicWhitelistStatus.status ||
-        atomicWhitelistStatus.status.toLowerCase() != "Whitelisted".toLocaleLowerCase()) {
-        console.error(`Address ${wallet.address} is not whitelisted in the Ethereum atomic broker contract whitelist. Contact M1 Global for access.`);
-        return;
-    }
-
-// Fetch the M1 atomic broker config on Sepolia.
+    // Fetch the M1 atomic broker config on Sepolia.
     const brokerConfig: EvmAtomicBrokerConfig | undefined = await getAtomicBrokerConfig(true);
 
     if (!brokerConfig) {

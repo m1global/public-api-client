@@ -1,5 +1,4 @@
 import { Balance } from "../interfaces";
-import { getBrokerConfig } from "./get-broker-config";
 import { getFromAPI } from "./get-from-api";
 
 /**********************************************************************************
@@ -23,17 +22,13 @@ export async function getTrustline(
     isTestnet: boolean,
 ): Promise<Balance | undefined> {
 
-    const config = await getBrokerConfig(isTestnet);
-
-    var url: string;
-
     // The base url for the M1 API must be added to the environment.
     if (!process.env.M1_API_BASE_URL) {
         console.error("no M1_API_BASE_URL set in environemnt!");
         return;
     }
 
-    url = `${process.env.M1_API_BASE_URL}/stellar/trustlines/${assetCode}/${issuer}/${ownerAddress}`;
+    let url = `${process.env.M1_API_BASE_URL}/stellar/trustlines/${assetCode}/${issuer}/${ownerAddress}`;
 
     if (isTestnet) {
         url = `${url}?isTestnet=true`;

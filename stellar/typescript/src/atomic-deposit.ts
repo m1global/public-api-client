@@ -184,13 +184,13 @@ const options = pgm.opts();
     }
 
     // Fetch and report balances of both mock and USDM1.
-    let mockBalance = await getBalance(mock.symbol!, publicKey, true);
+    let mockBalance = await getBalance(mock.symbol!, publicKey, true, brokerConfig);
     if (!mockBalance) {
         console.error("failed to fetch balance for MOCK");
         return;
     }
     console.info(`balance of mock: ${mockBalance?.balance}`);
-    let usdm1Balance = await getBalance(brokerConfig.usdm1?.symbol!, publicKey, true);
+    let usdm1Balance = await getBalance(brokerConfig.usdm1?.symbol!, publicKey, true, brokerConfig);
     if (!usdm1Balance) {
         console.error("failed to fetch balance for USDM1");
         return;
@@ -217,7 +217,7 @@ const options = pgm.opts();
 
         await waitForTx(server, txHash);
 
-        mockBalance = await getBalance(mock.symbol!, publicKey, true);
+        mockBalance = await getBalance(mock.symbol!, publicKey, true, brokerConfig);
         if (!mockBalance) {
             console.error("failed to fetch balance for MOCK after faucet");
             return;
@@ -319,9 +319,9 @@ const options = pgm.opts();
     // Re-fetch the balances.
     // mock should decrease by the deposit amount.
     // USDM1 should increase (minted atomically).
-    mockBalance = await getBalance("MOCK", publicKey, true);
+    mockBalance = await getBalance("MOCK", publicKey, true, brokerConfig);
     console.info(`balance of mock: ${mockBalance?.balance}`);
-    usdm1Balance = await getBalance("USDM1", publicKey, true);
+    usdm1Balance = await getBalance("USDM1", publicKey, true, brokerConfig);
     console.info(`balance of USDM1: ${usdm1Balance?.balance}`);
     validateHeuristicBalanceChange({
         chainTag: "[stellar]",

@@ -47,16 +47,39 @@ export async function submitCommand(
         },
     };
 
-    const resp = await axios.post<CantonTransactionResult>(
-        `${baseUrl}/v2/commands/submit-and-wait-for-transaction`,
-        payload,
-        {
-            headers: {
-                Authorization: `Bearer ${jwt}`,
-                "Content-Type": "application/json",
+    try {
+        const resp = await axios.post<CantonTransactionResult>(
+            `${baseUrl}/v2/commands/submit-and-wait-for-transaction`,
+            payload,
+            {
+                headers: {
+                    Authorization: `Bearer ${jwt}`,
+                    "Content-Type": "application/json",
+                },
             },
-        },
-    );
+        );
 
-    return resp.data;
+        return resp.data;
+    } catch (error: unknown) {
+        if (!axios.isAxiosError(error)) {
+            throw error;
+        }
+
+        const status = error.response?.status;
+        const responseData = error.response?.data;
+        const cantonCode = typeof responseData?.code === "string" ? responseData.code : undefined;
+        const cantonCause = typeof responseData?.cause === "string" ? responseData.cause : undefined;
+        const prettyResponse = responseData === undefined
+            ? "no response body"
+            : JSON.stringify(responseData, null, 2);
+
+        const messageParts = [
+            `Canton command submission failed for ${commandIdPrefix}`,
+            status ? `(HTTP ${status})` : "",
+            cantonCode ? `with code ${cantonCode}` : "",
+            cantonCause ? `: ${cantonCause}` : `: ${error.message}`,
+        ].filter(Boolean);
+
+        throw new Error(`${messageParts.join(" ")}\n${prettyResponse}`);
+    }
 }
