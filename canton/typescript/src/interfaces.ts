@@ -112,6 +112,8 @@ export interface CantonBrokerConfig {
     atomicBrokerCid: string;
     atomicBrokerTemplateId: string;
     atomicBrokerBlob: string;
+    atomicBrokerDepositHaircut: string;
+    atomicBrokerRedemptionHaircut: string;
     maxAtomicRedemptionUsdm: string;
     usdm1AllocationFactoryCid: string;
     usdm1AllocationFactoryTemplateId: string;

@@ -35,6 +35,17 @@ export async function getOrCreateRecipientMintAuth(
 ): Promise<CantonCreatedEvent> {
 
     const templateId = `${brokerPackageId}:M1G.Broker.AtomicBroker:RecipientMintAuth`;
+    const maxMintAmount = String(process.env["CANTON_RECIPIENT_MINT_AUTH_MAX_MINT_AMOUNT"] ?? "1000000000").trim();
+
+    if (!/^\d+(?:\.\d+)?$/.test(maxMintAmount) || Number(maxMintAmount) <= 0) {
+        throw new Error("CANTON_RECIPIENT_MINT_AUTH_MAX_MINT_AMOUNT must be a positive decimal string");
+    }
+
+    const createArguments = {
+        admin: adminParty,
+        recipient: customerParty,
+        maxMintAmount,
+    };
 
     // Check whether one already exists in the customer's ACS.
     const existing = await queryActiveContracts(
@@ -54,20 +65,16 @@ export async function getOrCreateRecipientMintAuth(
 
     console.info("no RecipientMintAuth found — creating one...");
 
-    const command = {
-        CreateCommand: {
-            templateId,
-            createArguments: {
-                admin: adminParty,
-                recipient: customerParty,
-            },
-        },
-    };
-
-    const result: CantonTransactionResult = await submitCommand(
+    let result: CantonTransactionResult;
+    result = await submitCommand(
         baseUrl,
         jwt,
-        [command],
+        [{
+            CreateCommand: {
+                templateId,
+                createArguments,
+            },
+        }],
         [customerParty],
         "create-recipient-mint-auth",
         userId,

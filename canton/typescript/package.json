@@ -7,6 +7,7 @@
         "build": "tsc -p tsconfig.json",
         "deposit": "node dist/deposit.js",
         "redeem": "node dist/redeem.js",
+        "accept-transfer-offer": "node dist/acceptCollateralTransferOffer.js",
         "list-holdings": "node dist/listAllMyUSDM1Holdings.js",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
@@ -15,7 +16,7 @@
     "license": "ISC",
     "type": "commonjs",
     "dependencies": {
-        "axios": "^1.12.2",
+        "axios": "1.15.0",
         "commander-ts": "^0.2.0",
         "dotenv": "^17.2.3",
         "node": "22.20.0",

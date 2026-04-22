@@ -1,4 +1,4 @@
-import { Balance } from "../interfaces";
+import { Balance, StellarAtomicBrokerConfig, StellarBrokerConfig } from "../interfaces";
 import { getBrokerConfig } from "./get-broker-config";
 import { getFromAPI } from "./get-from-api";
 
@@ -21,9 +21,8 @@ export async function getBalance(
     assetCode: string,
     ownerAddress: string,
     isTestnet: boolean,
+    brokerConfig?: StellarBrokerConfig | StellarAtomicBrokerConfig,
 ): Promise<Balance | undefined> {
-
-    const config = await getBrokerConfig(isTestnet);
 
     var url: string;
 
@@ -39,6 +38,7 @@ export async function getBalance(
         const tokenId = +assetCode.charAt(4);
         url = `${process.env.M1_API_BASE_URL}/stellar/usdm/${tokenId}/balances/${ownerAddress}`;
     } else {
+        const config = brokerConfig ?? await getBrokerConfig(isTestnet);
         // Check if the assetCode is a collateral supported by the Broker
         const collateral = config?.collaterals?.find(col => col.symbol?.toLowerCase() == assetCode.toLowerCase());
         if (!collateral) {

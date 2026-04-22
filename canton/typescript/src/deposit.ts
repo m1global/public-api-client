@@ -16,6 +16,7 @@ import type {
     CantonCreatedEvent,
     CantonDepositSetup,
 } from "./interfaces";
+import { CANTON_MOCK_SYMBOL } from "./consts";
 import {
     sumHoldingAmounts,
     validateCantonBalanceChange,
@@ -43,9 +44,10 @@ import {
  *   M1_API_BASE_URL, M1_API_JWT
  *   CANTON_BASE_URL, CANTON_KEYCLOAK_URL, CANTON_KEYCLOAK_CLIENT_ID,
  *   CANTON_KEYCLOAK_CLIENT_SECRET, CANTON_PARTY_ID, CANTON_USER_ID,
- *   CANTON_USERNAME, CANTON_PASSWORD, CANTON_COLLATERAL_REGISTRAR
+ *   CANTON_USERNAME, CANTON_PASSWORD
  *
  * Optional environment variables:
+ *   CANTON_COLLATERAL_ID (defaults to MOCK)
  *   CANTON_DEPOSIT_AMOUNT (defaults to 100)
  *
  * Must be transpiled (npm run build) then run with:
@@ -78,12 +80,16 @@ function filterUsdmHoldings(
     });
 }
 
-function selectCollateral(bundle: CantonBrokerConfig): CantonAcceptedCollateral {
+function selectCollateral(bundle: CantonBrokerConfig, collateralId: string): CantonAcceptedCollateral {
     const acceptedCollaterals = Array.isArray(bundle.acceptedCollaterals) ? bundle.acceptedCollaterals : [];
-    const selectedCollateral = acceptedCollaterals.find((entry) => entry.enabled)
-        ?? acceptedCollaterals.find((entry) => Boolean(String(entry.id ?? "").trim()));
+    const selectedCollateral = acceptedCollaterals.find(
+        (entry) => String(entry.id ?? "").trim() === collateralId,
+    );
     if (!selectedCollateral) {
-        throw new Error("broker config missing acceptedCollaterals");
+        throw new Error(`broker config missing accepted collateral ${collateralId}`);
+    }
+    if (!selectedCollateral.enabled) {
+        throw new Error(`collateral ${collateralId} is present in broker config but not enabled`);
     }
     return selectedCollateral;
 }
@@ -162,7 +168,6 @@ function toDepositSetupFromBundle(bundle: CantonBrokerConfig, collateral: Canton
         "CANTON_USER_ID",
         "CANTON_USERNAME",
         "CANTON_PASSWORD",
-        "CANTON_COLLATERAL_REGISTRAR",
     ];
 
     for (const key of requiredEnv) {
@@ -175,7 +180,7 @@ function toDepositSetupFromBundle(bundle: CantonBrokerConfig, collateral: Canton
     const cantonBaseUrl = process.env["CANTON_BASE_URL"]!;
     const partyId = process.env["CANTON_PARTY_ID"]!;
     const userId = process.env["CANTON_USER_ID"]!;
-    const collateralRegistrarOverride = process.env["CANTON_COLLATERAL_REGISTRAR"]!;
+    const collateralId = String(process.env["CANTON_COLLATERAL_ID"] ?? CANTON_MOCK_SYMBOL).trim();
     const depositAmount = Number(process.env["CANTON_DEPOSIT_AMOUNT"] ?? "100");
 
     if (isNaN(depositAmount) || depositAmount <= 0) {
@@ -184,6 +189,7 @@ function toDepositSetupFromBundle(bundle: CantonBrokerConfig, collateral: Canton
     }
 
     console.info(`operating as Canton party: ${partyId}`);
+    console.info(`collateral id: ${collateralId}`);
     console.info(`deposit amount: ${depositAmount}`);
 
     // -------------------------------------------------------------------------
@@ -217,7 +223,7 @@ function toDepositSetupFromBundle(bundle: CantonBrokerConfig, collateral: Canton
         return;
     }
 
-    const selectedCollateral = selectCollateral(brokerConfig);
+    const selectedCollateral = selectCollateral(brokerConfig, collateralId);
     const instrumentId = String(selectedCollateral.id ?? "").trim();
     if (!instrumentId) {
         console.error("broker config missing selected collateral id");
@@ -232,16 +238,11 @@ function toDepositSetupFromBundle(bundle: CantonBrokerConfig, collateral: Canton
 
     const depositSetup = toDepositSetupFromBundle(brokerConfig, selectedCollateral);
 
-    const collateralRegistrar = collateralRegistrarOverride || depositSetup.collateralRegistrar;
-    if (collateralRegistrar !== depositSetup.collateralRegistrar) {
-        console.error(
-            `CANTON_COLLATERAL_REGISTRAR mismatch: env=${collateralRegistrar} ledger=${depositSetup.collateralRegistrar}`,
-        );
-        return;
-    }
     console.info(`AtomicBroker: ${depositSetup.atomicBrokerCid}`);
     console.info(`CollateralAllocationFactory: ${depositSetup.collateralAllocationFactoryCid}`);
     console.info(`adminParty: ${depositSetup.adminParty}`);
+    console.info(`brokerPackageId: ${depositSetup.brokerPackageId}`);
+    console.info(`collateralRegistrar: ${depositSetup.collateralRegistrar}`);
 
     // -------------------------------------------------------------------------
     // Step 3 (continued): Build InstrumentConfiguration and TransferRule events.

@@ -73,6 +73,18 @@ Queries the customer's ACS and prints all active USDM1 holdings, sorted largest-
 npm run list-holdings
 ```
 
+### `acceptCollateralTransferOffer.ts`
+
+Accepts a pending collateral `TransferOffer` by CID. This is useful if `redeem.ts`
+already created the redemption request and the customer later needs to retry just
+the final acceptance step.
+
+Takes the collateral `TransferOffer` contract ID as a CLI argument:
+
+```
+npm run accept-transfer-offer -- <TRANSFER_OFFER_CID>
+```
+
 ## Getting Started
 
 1. **Install dependencies**
@@ -112,13 +124,11 @@ npm run list-holdings
 | `CANTON_KEYCLOAK_CLIENT_ID` | all | OAuth2 client ID for Keycloak. |
 | `CANTON_KEYCLOAK_CLIENT_SECRET` | all | OAuth2 client secret for Keycloak. |
 | `CANTON_PARTY_ID` | all | Your Canton party ID. |
-| `CANTON_USER_ID` | deposit | Your Keycloak user ID (`sub` claim). |
+| `CANTON_USER_ID` | deposit, redeem | Your Keycloak user ID (`sub` claim). |
 | `CANTON_USERNAME` | all | Your Keycloak username. |
 | `CANTON_PASSWORD` | all | Your Keycloak password. |
-| `CANTON_COLLATERAL_REGISTRAR` | deposit, redeem | Canton party ID of the collateral registrar. |
+| `CANTON_COLLATERAL_ID` | deposit, redeem | Collateral ID to select from the broker bundle (default: `MOCK`). |
 | `CANTON_DEPOSIT_AMOUNT` | deposit | Amount of collateral to deposit (default: `100`). |
-| `UTILITY_REGISTRY_V0_PACKAGE_ID` | deposit, redeem | Package ID for `utility-registry-v0`. |
-| `UTILITY_REGISTRY_APP_V0_PACKAGE_ID` | deposit, redeem | Package ID for `utility-registry-app-v0`. |
-| `UTILITY_REGISTRY_HOLDING_V0_PACKAGE_ID` | all | Package ID for `utility-registry-holding-v0`. |
+| `CANTON_RECIPIENT_MINT_AUTH_MAX_MINT_AMOUNT` | deposit | Standing `RecipientMintAuth` mint limit (default: `1000000000`). |
 
-Package IDs are content-addressed hashes and are the same across all Canton environments that use the same DAR version. The `TRANSFER_INSTRUCTION_V1_PACKAGE_ID` constant used internally is hardcoded in `src/consts.ts` for the same reason.
+Broker package IDs, utility registry package IDs, and collateral metadata are read from the M1 `/canton/broker` bundle at runtime. The `TRANSFER_INSTRUCTION_V1_PACKAGE_ID` constant used internally is hardcoded in `src/consts.ts`.

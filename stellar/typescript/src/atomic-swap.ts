@@ -128,13 +128,13 @@ const options = pgm.opts();
     }
 
     // Fetch and report balances of both USDM1 and USDM0.
-    let usdm1Balance = await getBalance("USDM1", publicKey, true);
+    let usdm1Balance = await getBalance("USDM1", publicKey, true, brokerConfig);
     if (!usdm1Balance) {
         console.error("failed to fetch balance for USDM1");
         return;
     }
     console.info(`balance of USDM1: ${usdm1Balance?.balance}`);
-    let usdm0Balance = await getBalance("USDM0", publicKey, true);
+    let usdm0Balance = await getBalance("USDM0", publicKey, true, brokerConfig);
     if (!usdm0Balance) {
         console.error("failed to fetch balance for USDM0");
         return;
@@ -206,9 +206,9 @@ const options = pgm.opts();
     // Re-fetch the balances.
     // USDM1 should decrease by the swap amount.
     // USDM0 should increase (minted atomically).
-    usdm1Balance = await getBalance(brokerConfig.usdm1!.symbol!, publicKey, true);
+    usdm1Balance = await getBalance(brokerConfig.usdm1!.symbol!, publicKey, true, brokerConfig);
     console.info(`balance of USDM1: ${usdm1Balance?.balance}`);
-    usdm0Balance = await getBalance(brokerConfig.usdm0.symbol!, publicKey, true);
+    usdm0Balance = await getBalance(brokerConfig.usdm0.symbol!, publicKey, true, brokerConfig);
     console.info(`balance of USDM0: ${usdm0Balance?.balance}`);
     validateHeuristicBalanceChange({
         chainTag: "[stellar]",

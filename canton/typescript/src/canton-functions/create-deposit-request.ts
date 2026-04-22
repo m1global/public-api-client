@@ -7,8 +7,9 @@ import { submitCommand } from "./submit-command";
  * CreateDepositRequest is a nonconsuming choice — it:
  *   1. Calls TransferFactory_Transfer on the collateral AllocationFactory, which
  *      creates a pending TransferInstruction (collateral moves to the broker).
- *   2. Creates a DepositRequest recording the depositor, recipient, USDM
- *      instrument, and the pending TransferInstruction CID.
+ *   2. Creates a DepositRequest recording the depositor, recipient, and the
+ *      pending TransferInstruction CID. The USDM instrument is derived by the
+ *      broker from its own contract state.
  *
  * The broker admin later calls ProcessDepositAtomic to settle the collateral
  * transfer and mint USDM to the recipient.
@@ -52,10 +53,6 @@ export async function createDepositRequest(
             choiceArgument: {
                 depositor: customerParty,
                 recipient: customerParty,
-                usdmInstrumentId: {
-                    admin: setup.usdm1Registrar,
-                    id: setup.usdm1InstrumentId,
-                },
                 collateralAmount,
                 collateralInstrumentId: {
                     admin: setup.collateralRegistrar,

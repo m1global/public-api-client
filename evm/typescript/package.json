@@ -21,7 +21,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "axios": "^1.12.2",
+    "axios": "1.15.0",
     "commander-ts": "^0.2.0",
     "dotenv": "^17.2.3",
     "ethers": "^6.15.0",

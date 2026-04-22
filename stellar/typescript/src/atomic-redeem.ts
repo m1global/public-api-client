@@ -24,6 +24,7 @@ import { atomicRedeem } from "./api-functions/atomic-redeem";
 import {
     prepareSignAndSendTx,
     signAndSendTx,
+    sleep,
     waitForTx
 } from "./api-functions/util";
 import { getWhitelistStatus } from "./api-functions/get-whitelist-status";
@@ -182,13 +183,13 @@ const options = pgm.opts();
     }
 
     // Fetch and report balances of both USDM0 and Mock.
-    let usdm0Balance = await getBalance("USDM0", publicKey, true);
+    let usdm0Balance = await getBalance("USDM0", publicKey, true, brokerConfig);
     if (!usdm0Balance) {
         console.error("failed to fetch balance for USDM0");
         return;
     }
     console.info(`balance of USDM0: ${usdm0Balance?.balance}`);
-    let mockBalance = await getBalance("MOCK", publicKey, true);
+    let mockBalance = await getBalance("MOCK", publicKey, true, brokerConfig);
     if (!mockBalance) {
         console.error("failed to fetch balance for MOCK");
         return;
@@ -284,13 +285,15 @@ const options = pgm.opts();
 
     let txHash = await prepareSignAndSendTx(server, xdr, stellarNetwork, keypair);
     await waitForTx(server, txHash!);
+    console.info("[stellar] sleeping 15000ms to allow atomic redemption settlement to propagate...");
+    await sleep(15000);
 
     // Re-fetch the balances.
     // USDM0 should decrease by the redemption amount (escrowed, pending process_redemption).
     // MOCK should remain the same until the redemption is processed by the operator.
-    usdm0Balance = await getBalance(brokerConfig.usdm0.symbol!, publicKey, true);
+    usdm0Balance = await getBalance(brokerConfig.usdm0.symbol!, publicKey, true, brokerConfig);
     console.info(`balance of USDM0: ${usdm0Balance?.balance}`);
-    mockBalance = await getBalance(mock.symbol!, publicKey, true);
+    mockBalance = await getBalance(mock.symbol!, publicKey, true, brokerConfig);
     console.info(`balance of MOCK: ${mockBalance?.balance}`);
     validateOneToOneRedemption({
         chainTag: "[stellar]",

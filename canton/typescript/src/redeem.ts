@@ -7,6 +7,7 @@ import { queryActiveContracts } from "./canton-functions/query-active-contracts"
 import { submitCommand } from "./canton-functions/submit-command";
 import { acceptTransferOffer } from "./canton-functions/accept-transfer-offer";
 import { sleep } from "./api-functions/util";
+import { CANTON_MOCK_SYMBOL } from "./consts";
 import type {
     CantonAcceptedCollateral,
     CantonBrokerConfig,
@@ -28,7 +29,7 @@ import {
  *  3.  Resolves required contracts from broker bundle + customer ACS, validates
  *      selected USDM1 holding CID, and captures baseline TransferOffers.
  *  4.  Exercises AtomicBroker::CreateRedemptionRequest using the selected
- *      holding amount as usdmAmount.
+ *      holding amount as `usdmAmount`.
  *  5.  Polls customer ACS for a newly created collateral TransferOffer matching
  *      the RedemptionRequest recipient and collateral instrument.
  *  6.  Exercises TransferInstruction_Accept on that offer to complete delivery
@@ -38,7 +39,10 @@ import {
  *   M1_API_BASE_URL, M1_API_JWT
  *   CANTON_BASE_URL, CANTON_KEYCLOAK_URL, CANTON_KEYCLOAK_CLIENT_ID,
  *   CANTON_KEYCLOAK_CLIENT_SECRET, CANTON_PARTY_ID, CANTON_USER_ID,
- *   CANTON_USERNAME, CANTON_PASSWORD, CANTON_COLLATERAL_REGISTRAR
+ *   CANTON_USERNAME, CANTON_PASSWORD
+ *
+ * Optional environment variables:
+ *   CANTON_COLLATERAL_ID (defaults to MOCK)
  *
  * Must be transpiled (npm run build) then run with:
  *   node dist/redeem.js <USDM1_HOLDING_CID>
@@ -82,12 +86,16 @@ function parseAmount(value: unknown): number {
     return 0;
 }
 
-function selectCollateral(bundle: CantonBrokerConfig): CantonAcceptedCollateral {
+function selectCollateral(bundle: CantonBrokerConfig, collateralId: string): CantonAcceptedCollateral {
     const acceptedCollaterals = Array.isArray(bundle.acceptedCollaterals) ? bundle.acceptedCollaterals : [];
-    const selectedCollateral = acceptedCollaterals.find((entry) => entry.enabled)
-        ?? acceptedCollaterals.find((entry) => Boolean(String(entry.id ?? "").trim()));
+    const selectedCollateral = acceptedCollaterals.find(
+        (entry) => String(entry.id ?? "").trim() === collateralId,
+    );
     if (!selectedCollateral) {
-        throw new Error("broker config missing acceptedCollaterals");
+        throw new Error(`broker config missing accepted collateral ${collateralId}`);
+    }
+    if (!selectedCollateral.enabled) {
+        throw new Error(`collateral ${collateralId} is present in broker config but not enabled`);
     }
     return selectedCollateral;
 }
@@ -370,20 +378,20 @@ function findUsdm1HoldingByCid(
     return holding;
 }
 
-function getBrokerMaxAtomicRedemptionUsdm(bundle: CantonBrokerConfig): number {
-    const maxValue = parseAmount(bundle.maxAtomicRedemptionUsdm);
-    if (!Number.isFinite(maxValue) || maxValue <= 0) {
-        throw new Error("broker config maxAtomicRedemptionUsdm is missing or invalid");
-    }
-    return maxValue;
-}
-
 function getRequiredHoldingCidArg(): string {
     const holdingCid = String(process.argv[2] ?? "").trim();
     if (!holdingCid) {
         throw new Error("missing holding CID argument; usage: node dist/redeem.js <USDM1_HOLDING_CID>");
     }
     return holdingCid;
+}
+
+function getBrokerRedemptionHaircut(bundle: CantonBrokerConfig): number {
+    const haircut = parseAmount(bundle.atomicBrokerRedemptionHaircut);
+    if (!Number.isFinite(haircut) || haircut < 0 || haircut >= 1) {
+        throw new Error("broker config atomicBrokerRedemptionHaircut is missing or invalid");
+    }
+    return haircut;
 }
 
 (async () => {
@@ -399,7 +407,6 @@ function getRequiredHoldingCidArg(): string {
         "CANTON_USER_ID",
         "CANTON_USERNAME",
         "CANTON_PASSWORD",
-        "CANTON_COLLATERAL_REGISTRAR",
     ];
 
     for (const key of requiredEnv) {
@@ -411,9 +418,11 @@ function getRequiredHoldingCidArg(): string {
     const cantonBaseUrl = process.env["CANTON_BASE_URL"]!;
     const partyId = process.env["CANTON_PARTY_ID"]!;
     const userId = process.env["CANTON_USER_ID"]!;
+    const collateralId = String(process.env["CANTON_COLLATERAL_ID"] ?? CANTON_MOCK_SYMBOL).trim();
     const selectedUsdmHoldingCid = getRequiredHoldingCidArg();
 
     console.info(`operating as Canton party: ${partyId}`);
+    console.info(`collateral id: ${collateralId}`);
     console.info(`selected USDM1 holding: ${selectedUsdmHoldingCid}`);
 
     // -------------------------------------------------------------------------
@@ -440,7 +449,7 @@ function getRequiredHoldingCidArg(): string {
     if (!brokerConfig) {
         throw new Error("failed to fetch Canton broker config from M1 API");
     }
-    const redemptionSetup = toRedemptionSetupFromBundle(brokerConfig, selectCollateral(brokerConfig));
+    const redemptionSetup = toRedemptionSetupFromBundle(brokerConfig, selectCollateral(brokerConfig, collateralId));
     console.info(`AtomicBroker: ${redemptionSetup.atomicBrokerCid}`);
     console.info(`USDM1 instrument: ${redemptionSetup.usdm1InstrumentId}`);
 
@@ -461,8 +470,8 @@ function getRequiredHoldingCidArg(): string {
         throw new Error(`AtomicBroker ${atomicBroker.contractId} is missing createdEventBlob`);
     }
     console.info(`AtomicBroker (bundle): ${atomicBroker.contractId}`);
-    const maxAtomicRedemptionUsdm = getBrokerMaxAtomicRedemptionUsdm(brokerConfig);
-    console.info(`broker maxAtomicRedemptionUsdm: ${maxAtomicRedemptionUsdm}`);
+    const redemptionHaircut = getBrokerRedemptionHaircut(brokerConfig);
+    console.info(`broker redemption haircut: ${redemptionHaircut}`);
 
     const usdm1InstrumentConfig: CantonCreatedEvent = {
         contractId: redemptionSetup.usdm1InstrumentConfigCid,
@@ -544,13 +553,6 @@ function getRequiredHoldingCidArg(): string {
     console.info(`baseline USDM1 holdings: ${baselineUsdm1Holdings.length}`);
     console.info(`baseline transfer offers (all instruments): ${baselineTransferOffers.length}`);
     console.info(`baseline collateral transfer offers: ${baselineCollateralTransferOffers.length}`);
-    if (baselineCollateralHoldings.length === 0 && holdings.length > 0) {
-        const sample = holdings.slice(0, 5).map((event) => {
-            const identity = getHoldingIdentity(event);
-            return `${event.contractId}:{owner=${identity.owner},id=${identity.instrumentId},admin=${identity.instrumentAdmin}}`;
-        }).join("; ");
-        console.info(`baseline holding identity sample: ${sample}`);
-    }
 
     const selectedUsdmHolding = findUsdm1HoldingByCid(
         holdings,
@@ -574,11 +576,6 @@ function getRequiredHoldingCidArg(): string {
     console.info(`selected holding amount: ${selectedHoldingAmount}`);
 
     const redemptionAmount = selectedHoldingAmount;
-    if (!(redemptionAmount < maxAtomicRedemptionUsdm)) {
-        throw new Error(
-            `selected holding amount (${redemptionAmount}) must be strictly less than maxAtomicRedemptionUsdm (${maxAtomicRedemptionUsdm}) for atomic close`,
-        );
-    }
     console.info(`redemption amount (from holding): ${redemptionAmount}`);
 
     // -------------------------------------------------------------------------
@@ -588,17 +585,13 @@ function getRequiredHoldingCidArg(): string {
     const requestId = `atomic-redemption-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     const command = {
         ExerciseCommand: {
-            templateId: `${redemptionSetup.brokerPackageId}:M1G.Broker.AtomicBroker:AtomicBroker`,
+            templateId: redemptionSetup.atomicBrokerTemplateId,
             contractId: atomicBroker.contractId,
             choice: "CreateRedemptionRequest",
             choiceArgument: {
                 redeemer: partyId,
                 recipient: partyId,
                 requestId,
-                usdmInstrumentId: {
-                    admin: redemptionSetup.usdm1Registrar,
-                    id: redemptionSetup.usdm1InstrumentId,
-                },
                 collateralInstrumentId: {
                     admin: redemptionSetup.collateralRegistrar,
                     id: redemptionSetup.collateralInstrumentId,
@@ -693,13 +686,6 @@ function getRequiredHoldingCidArg(): string {
         console.info(
             `  poll ${attempt}/${OFFER_POLL_ATTEMPTS} — ledgerEnd=${freshLedgerEnd} totalVisibleTransferOffers=${transferOffers.length} newVisibleTransferOffers=${newVisibleTransferOffers.length} collateralTransferOffers=${collateralTransferOffers.length}`,
         );
-        if (newVisibleTransferOffers.length > 0) {
-            const sample = newVisibleTransferOffers.slice(0, 3).map((event) => {
-                const identity = getTransferOfferIdentity(event);
-                return `${event.contractId}:{receiver=${identity.receiver},id=${identity.instrumentId},admin=${identity.instrumentAdmin},amount=${identity.amount}}`;
-            }).join("; ");
-            console.info(`    new transfer-offer identity sample: ${sample}`);
-        }
 
         await sleep(OFFER_POLL_INTERVAL_MS);
     }
@@ -771,8 +757,10 @@ function getRequiredHoldingCidArg(): string {
         afterCollateral: postRedemptionCollateralSum,
         beforeUsdm1: preRedemptionUsdm1Sum,
         afterUsdm1: postRedemptionUsdm1Sum,
-        expectedCollateralDelta: selectedHoldingAmount,
+        expectedCollateralDelta: selectedHoldingAmount * (1 - redemptionHaircut),
+        collateralTolerance: Math.max(selectedHoldingAmount * 0.05, 1e-9),
         expectedUsdm1Delta: -selectedHoldingAmount,
+        usdm1Tolerance: 1e-9,
     });
     console.info("redemption complete");
 })().catch((error: unknown) => {
