@@ -1,12 +1,3 @@
-import { StringLiteral } from "typescript";
-
-export interface StellarBrokerConfig {
-    address: string;
-    usdm0: StellarAsset | undefined;
-    usdm1: StellarAsset | undefined;
-    collaterals: StellarAsset[] | undefined
-}
-
 export interface StellarAtomicBrokerConfig {
     address: string;
     usdm0: StellarAsset | undefined;
@@ -37,29 +28,6 @@ export interface StellarAllowanceBody {
     spender: string,
     amount: string,
     isTestnet: boolean,
-}
-
-export interface StellarDepositBody {
-    depositor: string,
-    collateral: string,
-    amount: string,
-    tokenCode: string,
-    isTestnet?: boolean,
-}
-
-export interface StellarRedemptionBody {
-    redeemer: string,
-    tokenCode: string,
-    amount: string,
-    collateral: string,
-    isTestnet?: boolean,
-}
-
-export interface StellarSwapBody {
-    swapper: string,
-    inputTokenCode: string,
-    amount: string,
-    isTestnet?: boolean,
 }
 
 export interface StellarAtomicDepositBody {
@@ -103,6 +71,14 @@ export interface StellarPriceAttestation {
     signature: string;
 }
 
+export interface StellarPriceAttestationResponse extends StellarPriceAttestation {
+    contract: string;
+    consumer: string;
+    token: string;
+    feedId: string;
+    digest: string;
+}
+
 export interface StellarDepositPermit {
     caller: string;
     source: string;
@@ -129,30 +105,6 @@ export interface StellarRedeemPermit {
     notAfter: string;
     publicKey: string;
     signature: string;
-}
-
-export interface Deposit {
-    depositor: string;
-    amount: BigInt;
-    amountApproved?: BigInt;
-    collateral: string;
-    token: string;
-}
-
-export interface Redemption {
-    redeemer: string;
-    amount: BigInt;
-    amountApproved?: BigInt;
-    token: string;
-    collateral: string;
-}
-
-export interface Swap {
-    swapper: string;
-    amount: BigInt;
-    amountApproved?: BigInt;
-    inputToken: string;
-    outputToken: string;
 }
 
 export interface Trustline {

@@ -43,11 +43,11 @@ import {
  * which is subsequently signed and submitted.
  * 
  * Uses a preconfigured wallet that is created by the create-wallet.ts node script.
- * The public address of this wallet must be whitelisted by M1 Global in the
+ * The public address of this wallet must be whitelisted by M1X in the
  * shared Solana-backed whitelist used by attestation/permit generation,
  * otherwise the deposit request will fail before settlement.
  * 
- * Create the wallet first and then contact M1 Global for your client JWT for API access
+ * Create the wallet first and then contact M1X for your client JWT for API access
  * and let us know what your Sepolia wallet public address is if permit issuance
  * for your account is required operationally.
  * 
@@ -138,13 +138,13 @@ const options = pgm.opts();
 
     // Fetch and report balances of both mock and USDM1.
     // The same block will be run at the end to see the final result.
-    let mockBalance = await getBalance("mock", wallet.address, true);
+    let mockBalance = await getBalance("mock", wallet.address, true, brokerConfig);
     if (!mockBalance) {
         console.error("failed to fetch balance for mock");
         return;
     }
     console.info(`balance of mock: ${mockBalance?.balance}`);
-    let usdm1Balance = await getBalance("USDM1", wallet.address, true);
+    let usdm1Balance = await getBalance("USDM1", wallet.address, true, brokerConfig);
     console.info(`balance of USDM1: ${usdm1Balance?.balance}`);
 
     // Check that there is enough mock for the deposit.
@@ -173,7 +173,7 @@ const options = pgm.opts();
         // wait for 2 blocks of confirmation, adjust as necessary
         await provider.waitForTransaction(faucetResult.tx, 2);
 
-        mockBalance = await getBalance("mock", wallet.address, true);
+        mockBalance = await getBalance("mock", wallet.address, true, brokerConfig);
         if (!mockBalance) {
             console.error("failed to fetch balance for mock after faucet");
             return;
@@ -279,9 +279,9 @@ const options = pgm.opts();
     // mock should be 0.
     // USDM1 should be a value close to but less than 100000000000000000000.
     // (If the deposit fails, mock will be 100 and USDM1 will be 0)
-    mockBalance = await getBalance("mock", wallet.address, true);
+    mockBalance = await getBalance("mock", wallet.address, true, brokerConfig);
     console.info(`balance of mock: ${mockBalance?.balance}`);
-    usdm1Balance = await getBalance("USDM1", wallet.address, true);
+    usdm1Balance = await getBalance("USDM1", wallet.address, true, brokerConfig);
     console.info(`balance of USDM1: ${usdm1Balance?.balance}`);
     validateHeuristicBalanceChange({
         chainTag: "[evm]",

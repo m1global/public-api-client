@@ -141,3 +141,6 @@ vite.config.ts.timestamp-*
 **/dist
 **/wallet.json
 **/id.json
+
+**/codex-session.txt
+**/redemption-details.json

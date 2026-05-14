@@ -2,15 +2,13 @@ import axios from "axios";
 
 /**********************************************************************************
  * Typescript function that calls the M1 API Stellar endpoint for faucets
- * and returns an operation id.
+ * and returns the submitted transaction hash.
  * 
  * @param {string} assetName The Stellar asset name of the token being requested.
  * @param {string} recipientAddress The recipient of the faucet tokens.
  * 
- * @returns {Promise<string | undefined>} The operation id associated with the
- *  request or undefined if an error occurs.
- * 
- * @dev The operation id can be used to fetch the associated Stellar testnet transaction hash.
+ * @returns {Promise<string | undefined>} The submitted transaction hash or
+ *  undefined if an error occurs.
  */
 export async function faucet(assetName: string, recipientAddress: string): Promise<string | undefined> {
 
@@ -39,10 +37,10 @@ export async function faucet(assetName: string, recipientAddress: string): Promi
                     "Authorization": `Bearer ${process.env.M1_API_JWT}`,
                 }
             });
-        if (!apiResp || !apiResp.data || !apiResp.data.opId) {
+        if (!apiResp || !apiResp.data || !apiResp.data.tx) {
             throw new Error("no response from server");
         }
-        return apiResp.data.opId;
+        return apiResp.data.tx;
     } catch (err) {
         if (axios.isAxiosError(err)) {
             console.error(`post to faucet endpoint failed: ` +

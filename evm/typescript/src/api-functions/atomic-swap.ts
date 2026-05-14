@@ -1,6 +1,6 @@
 import { ContractTransaction } from "ethers";
 
-import { EvmAtomicDepositBody, EvmAtomicSwapBody, EvmDepositBody, PriceAttestation } from "../interfaces";
+import { EvmAtomicSwapBody, PriceAttestation } from "../interfaces";
 import { postToAPI } from "./post-to-api";
 
 /**********************************************************************************

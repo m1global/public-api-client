@@ -1,6 +1,8 @@
-# M1 Global TypeScript API Client for Stellar
+# M1X TypeScript API Client for Stellar
 
-The M1 Global TypeScript API Client for Stellar is a set of example Node.js scripts that demonstrates how to interact with the M1 API and the Stellar network to deposit mock collateral, swap USDM1 for USDM0, and redeem USDM0 for collateral on Stellar Testnet.
+The depredated, legacy deposit, swap, and redeem scripts have been removed in this version and the corresponding broker contract has been paused on-chain.
+
+The M1X TypeScript API Client for Stellar is a set of example Node.js scripts that demonstrates how to interact with the M1 API and the Stellar network using the atomic broker flow on Stellar Testnet.
 
 These scripts are intended as reference implementations and are not a comprehensive exploration of the full API feature set.
 
@@ -13,11 +15,11 @@ These scripts are intended as reference implementations and are not a comprehens
 
 ## Authentication
 
-Most M1 API endpoints require a Client JWT transmitted in the `Authorization` header as a bearer token. Client JWTs have a TTL of 365 days. Contact M1 Global to receive your Client JWT.
+Most M1 API endpoints require a Client JWT transmitted in the `Authorization` header as a bearer token. Client JWTs have a TTL of 365 days. Contact M1X to receive your Client JWT.
 
 ## Stellar Whitelist
 
-The M1 Global Stellar deposit and redeem flows require your Stellar public key to be whitelisted. Provide your public key to M1 Global when you register for your Client JWT.
+The M1X Stellar deposit and redeem flows require your Stellar public key to be whitelisted. Provide your public key to M1X when you register for your Client JWT.
 
 ## Wallet Setup
 
@@ -39,57 +41,60 @@ stellar keys secret alice
 Pass the secret at runtime:
 
 ```
-npm run deposit -- -s "$(stellar keys secret alice)"
+npm run atomic-deposit -- -s "$(stellar keys secret alice)"
 ```
 
 ## Scripts
 
-### `deposit.ts`
+### `atomic-deposit.ts`
 
-Deposits mock collateral in exchange for USDM1 on Stellar Testnet:
+Deposits mock collateral in exchange for USDM1 on Stellar Testnet in the atomic broker flow:
 
 1. Verifies the wallet is whitelisted by the M1 API.
-2. Fetches the M1 broker configuration for Stellar Testnet.
+2. Fetches the M1 atomic broker configuration for Stellar Testnet.
 3. Ensures trustlines exist for MOCK and USDM1, creating them if needed.
-4. Checks the MOCK collateral balance; calls the M1 faucet if the balance is insufficient (rate-limited to 10 requests per hour per token).
+4. Checks the MOCK collateral balance; calls the M1 faucet if the balance is insufficient.
 5. Checks the broker's allowance on the wallet's MOCK balance; submits an approve transaction if insufficient.
-6. Fetches a deposit transaction (base-64 encoded XDR) from the M1 API, signs it, and submits it to Stellar Testnet.
+6. Fetches price attestations and a deposit permit from the M1 API.
+7. Fetches an atomic deposit transaction (base-64 encoded XDR) from the M1 API, signs it, and submits it to Stellar Testnet.
 
 ```
-npm run deposit -- -s "$(stellar keys secret alice)"
+npm run atomic-deposit -- -s "$(stellar keys secret alice)"
 ```
 
 The deposit amount defaults to `1000000000` (100 MOCK, 7 decimal places).
 
-### `swap.ts`
+### `atomic-swap.ts`
 
-Swaps USDM1 for USDM0 on Stellar Testnet. Run `deposit` first to acquire USDM1.
+Swaps USDM1 for USDM0 on Stellar Testnet in the atomic broker flow. Run `atomic-deposit` first to acquire USDM1.
 
-1. Fetches the M1 broker configuration for Stellar Testnet.
+1. Fetches the M1 atomic broker configuration for Stellar Testnet.
 2. Ensures a trustline exists for USDM0, creating it if needed.
 3. Checks the USDM1 balance; aborts if insufficient.
 4. Checks the broker's allowance on the wallet's USDM1 balance; submits an approve transaction if insufficient.
-5. Fetches a swap transaction (base-64 encoded XDR) from the M1 API, signs it, and submits it to Stellar Testnet.
+5. Fetches a price attestation from the M1 API.
+6. Fetches an atomic swap transaction (base-64 encoded XDR) from the M1 API, signs it, and submits it to Stellar Testnet.
 
 ```
-npm run swap -- -s "$(stellar keys secret alice)"
+npm run atomic-swap -- -s "$(stellar keys secret alice)"
 ```
 
 The swap amount defaults to `900000000` (90 USDM1, 7 decimal places).
 
-### `redeem.ts`
+### `atomic-redeem.ts`
 
-Redeems USDM0 for mock collateral on Stellar Testnet. Run `swap` first to acquire USDM0.
+Redeems USDM0 for mock collateral on Stellar Testnet in the atomic broker flow. Run `atomic-deposit` then `atomic-swap` first to acquire USDM0.
 
-1. Fetches the M1 broker configuration for Stellar Testnet.
+1. Fetches the M1 atomic broker configuration for Stellar Testnet.
 2. Verifies the wallet is whitelisted by the M1 API.
 3. Ensures trustlines exist for USDM0 and MOCK, creating them if needed.
 4. Checks the USDM0 balance; aborts if insufficient.
 5. Checks the broker's allowance on the wallet's USDM0 balance; submits an approve transaction if insufficient.
-6. Fetches a redemption transaction (base-64 encoded XDR) from the M1 API, signs it, and submits it to Stellar Testnet.
+6. Fetches price attestations and a redeem permit from the M1 API.
+7. Fetches an atomic redemption transaction (base-64 encoded XDR) from the M1 API, signs it, and submits it to Stellar Testnet.
 
 ```
-npm run redeem -- -s "$(stellar keys secret alice)"
+npm run atomic-redeem -- -s "$(stellar keys secret alice)"
 ```
 
 The redemption amount defaults to `100000000` (10 USDM0, 7 decimal places).
@@ -112,7 +117,7 @@ The redemption amount defaults to `100000000` (10 USDM0, 7 decimal places).
 
 4. **Create and fund a Stellar testnet wallet** (see [Wallet Setup](#wallet-setup) above).
 
-5. **Contact M1 Global** to provide your Stellar public key and receive your Client JWT.
+5. **Contact M1X** to provide your Stellar public key and receive your Client JWT.
 
 6. **Build the project**
 
@@ -123,7 +128,7 @@ The redemption amount defaults to `100000000` (10 USDM0, 7 decimal places).
 7. **Run a script**, e.g.:
 
    ```
-   npm run deposit -- -s "$(stellar keys secret alice)"
+   npm run atomic-deposit -- -s "$(stellar keys secret alice)"
    ```
 
 ## Environment Variables

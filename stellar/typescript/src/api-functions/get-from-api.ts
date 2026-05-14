@@ -3,12 +3,9 @@ import axios from "axios";
 import {
     Allowance,
     Balance,
-    Deposit,
     StellarAtomicBrokerConfig,
-    StellarBrokerConfig,
     StellarPriceAttestation,
-    Redemption,
-    Swap,
+    StellarPriceAttestationResponse,
     TxResult,
     WhitelistStatus,
     Trustline
@@ -18,8 +15,8 @@ import { logRequest, logResponse } from "./util";
 /**********************************************************************************
  * Generic Typescript function that executes a GET on an M1 API Stellar endpoint.
  * 
- * @template {T extends StellarBrokerConfig | Trustline | Allowance | Deposit | 
- *  Swap | Balance | WhitelistStatus | TxResult} 
+ * @template {T extends StellarAtomicBrokerConfig | Trustline | Allowance |
+ *  Balance | WhitelistStatus | TxResult}
  * @param url The M1 API url.
  * @param ownerAddress The owner of the asset.
  * @param isTestnet Flag to switch betwen Testnet and Public.
@@ -27,9 +24,9 @@ import { logRequest, logResponse } from "./util";
  * @returns {Promise<Balance | undefined>} A Balance object or undefined if an error
  *  occurs.
  */
-export async function getFromAPI<T extends StellarBrokerConfig | StellarAtomicBrokerConfig |
-    StellarPriceAttestation | Trustline | Allowance |
-    Deposit | Redemption | Swap | Balance | WhitelistStatus | TxResult>(
+export async function getFromAPI<T extends StellarAtomicBrokerConfig |
+    StellarPriceAttestation | StellarPriceAttestationResponse | Trustline | Allowance |
+    Balance | WhitelistStatus | TxResult>(
         url: string,
         isSecure = true): Promise<T | undefined> {
 

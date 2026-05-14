@@ -1,5 +1,4 @@
-import { Balance } from "../interfaces";
-import { getBrokerConfig } from "./get-broker-config";
+import { Balance, EvmAtomicBrokerConfig } from "../interfaces";
 import { getFromAPI } from "./get-from-api";
 
 /**********************************************************************************
@@ -14,16 +13,14 @@ import { getFromAPI } from "./get-from-api";
  *  occurs.
  * 
  * @dev The asset symbol must either be "USDM0", "USDM1", or a collateral supported
- *  by the Broker contract.
- * @dev See get-broker-config.ts
+ *  by the Atomic Broker config supplied by the caller.
  */
 export async function getBalance(
     symbol: string,
     ownerAddress: string,
     isTestnet: boolean,
+    brokerConfig?: EvmAtomicBrokerConfig,
 ): Promise<Balance | undefined> {
-
-    const config = await getBrokerConfig(isTestnet);
 
     var url: string;
 
@@ -39,8 +36,12 @@ export async function getBalance(
         const tokenId = +symbol.charAt(4);
         url = `${process.env.M1_API_BASE_URL}/ethereum/usdm/${tokenId}/balances/${ownerAddress}`;
     } else {
-        // Check if the symbol is a collateral supported by the Broker
-        const collateral = config?.collaterals?.find(col => col.symbol?.toLowerCase() == symbol.toLowerCase());
+        if (!brokerConfig) {
+            console.error(`atomic broker config is required to resolve collateral symbol ${symbol}`);
+            return;
+        }
+        // Check if the symbol is a collateral supported by the Atomic Broker.
+        const collateral = brokerConfig.collaterals?.find(col => col.symbol?.toLowerCase() == symbol.toLowerCase());
         if (!collateral) {
             console.error(`symbol ${symbol} is not a valid collateral`);
             return;
@@ -57,7 +58,7 @@ export async function getBalance(
 /**********************************************************************************
  * Typescript function that fetches the balance of any ERC-20 token by its contract
  * address. Use this when the token address is known directly (e.g. from the Atomic
- * Broker config) rather than via the standard Broker's token registry.
+ * Broker config) rather than via a symbol registry.
  *
  * @param {string} tokenAddress The ERC-20 contract address of the token.
  * @param {string} ownerAddress The owner of the asset.

@@ -1,4 +1,4 @@
-import { StellarPriceAttestation } from "../interfaces";
+import { StellarPriceAttestationResponse } from "../interfaces";
 import { getFromAPI } from "./get-from-api";
 
 /**********************************************************************************
@@ -12,7 +12,7 @@ import { getFromAPI } from "./get-from-api";
  */
 export async function getUsdm1PriceAttestation(
     requesterAddress: string,
-    isTestnet = false): Promise<StellarPriceAttestation | undefined> {
+    isTestnet = false): Promise<StellarPriceAttestationResponse | undefined> {
 
     // The base url for the M1 API must be added to the environment.
     if (!process.env.M1_API_BASE_URL) {
@@ -27,5 +27,5 @@ export async function getUsdm1PriceAttestation(
         url = `${url}?isTestnet=true`;
     }
 
-    return await getFromAPI<StellarPriceAttestation>(url, true)
+    return await getFromAPI<StellarPriceAttestationResponse>(url, true)
 }

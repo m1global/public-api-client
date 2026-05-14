@@ -1,6 +1,6 @@
-# M1 Global TypeScript API Client for Canton
+# M1X TypeScript API Client for Canton
 
-The M1 Global TypeScript API Client for Canton is a set of example Node.js scripts that demonstrates how to interact with the M1 API and the Canton participant HTTP JSON API (v2) to deposit collateral, redeem USDM1, and inspect holdings on a Daml-based Canton ledger.
+The M1X TypeScript API Client for Canton is a set of example Node.js scripts that demonstrates how to interact with the M1 API and the Canton participant HTTP JSON API (v2) to deposit collateral, redeem USDM1, and inspect holdings on a Daml-based Canton ledger.
 
 These scripts are intended as reference implementations and are not a comprehensive exploration of the full API feature set.
 
@@ -15,7 +15,7 @@ These scripts are intended as reference implementations and are not a comprehens
 
 ### M1 API JWT
 
-Most M1 API endpoints require a Client JWT transmitted in the `Authorization` header as a bearer token. Client JWTs have a TTL of 365 days. Contact M1 Global to receive your Client JWT.
+Most M1 API endpoints require a Client JWT transmitted in the `Authorization` header as a bearer token. Client JWTs have a TTL of 365 days. Contact M1X to receive your Client JWT.
 
 ### Canton JWT (Keycloak)
 
@@ -23,7 +23,7 @@ Canton ledger operations require a separate bearer JWT issued by the Canton Keyc
 
 ## Canton Whitelist
 
-The M1 Global Canton deposit flow requires your Canton party ID to be whitelisted. Provide your `CANTON_PARTY_ID` to M1 Global when you register for your Client JWT.
+The M1X Canton deposit flow requires your Canton party ID to be whitelisted. Provide your `CANTON_PARTY_ID` to M1X when you register for your Client JWT.
 
 ## Scripts
 

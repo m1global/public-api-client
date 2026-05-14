@@ -285,8 +285,8 @@ const options = pgm.opts();
 
     let txHash = await prepareSignAndSendTx(server, xdr, stellarNetwork, keypair);
     await waitForTx(server, txHash!);
-    console.info("[stellar] sleeping 15000ms to allow atomic redemption settlement to propagate...");
-    await sleep(15000);
+    console.info("[stellar] sleeping 30000ms to allow atomic redemption settlement to propagate...");
+    await sleep(30000);
 
     // Re-fetch the balances.
     // USDM0 should decrease by the redemption amount (escrowed, pending process_redemption).

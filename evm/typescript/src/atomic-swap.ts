@@ -39,10 +39,10 @@ import {
  * which is subsequently signed and submitted.
  * 
  * Uses a preconfigured wallet that is created by the create-wallet.ts node script.
- * The public address of this wallet MUST be whitelisted by M1 Global,
+ * The public address of this wallet MUST be whitelisted by M1X,
  * otherwise the deposit will fail.
  * 
- * Create the wallet first and then contact M1 Global for your client JWT for API access
+ * Create the wallet first and then contact M1X for your client JWT for API access
  * and let us know what your Sepolia wallet public address is.
  * 
  * USDM0 tokens are minted to your wallet when you execute the swap script. 
@@ -173,12 +173,14 @@ const options = pgm.opts();
     }
 
     // Sign and submit the transaction.
+    console.info("submitting swap transaction...");
     const txResp = await signer.sendTransaction(contractTransaction);
     if (!txResp) {
         console.error("transaction failed to submit");
         console.log(txResp);
         return;
     }
+    console.info(`swap submitted: ${txResp.hash}`);
 
     // Request a transaction receipt for confirmation.
     const txReceipt = await txResp.wait();
