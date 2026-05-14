@@ -1,8 +1,8 @@
-# M1 Global API Client
+# M1X API Client
 
-This repository contains example API clients for [M1 Global](https://m1global.xyz), demonstrating how to deposit collateral, mint and swap USDM tokens, and redeem holdings across multiple blockchain networks.
+This repository contains example API clients for [M1X](https://m1global.xyz), demonstrating how to deposit collateral, mint and swap USDM tokens, and redeem holdings across multiple blockchain networks.
 
-M1 Global issues two tokens:
+M1X issues two tokens:
 
 - **USDM0** — non-yield-bearing
 - **USDM1** — yield-bearing
@@ -24,11 +24,11 @@ Each directory is a self-contained TypeScript/Node.js project with its own READM
 
 All projects require:
 
-- A **Client JWT** issued by M1 Global for API authentication.
-- A **whitelisted wallet address** (or party ID on Canton) registered with M1 Global.
+- A **Client JWT** issued by M1X for API authentication.
+- A **whitelisted wallet address** (or party ID on Canton) registered with M1X.
 - A funded wallet on the appropriate testnet to cover transaction fees.
 
-Contact M1 Global to obtain your Client JWT and register your wallet for whitelisting.
+Contact M1X to obtain your Client JWT and register your wallet for whitelisting.
 
 ## Getting Started
 

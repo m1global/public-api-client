@@ -1,11 +1,10 @@
 import axios from "axios";
 import { ContractTransaction } from "ethers";
 
-import { EvmApproveBody, EvmAtomicDepositBody, EvmAtomicRedemptionBody, EvmAtomicSwapBody, EvmDepositBody, EvmRedemptionBody, EvmSwapBody } from "../interfaces";
+import { EvmApproveBody, EvmAtomicDepositBody, EvmAtomicRedemptionBody, EvmAtomicSwapBody } from "../interfaces";
 import { logRequest, logResponse } from "./util";
 
-type PostBody = EvmApproveBody | EvmDepositBody | EvmSwapBody | EvmRedemptionBody |
-    EvmAtomicDepositBody | EvmAtomicRedemptionBody | EvmAtomicSwapBody |
+type PostBody = EvmApproveBody | EvmAtomicDepositBody | EvmAtomicRedemptionBody | EvmAtomicSwapBody |
     Record<string, unknown> | undefined;
 
 type PostOptions = {
@@ -17,8 +16,7 @@ type PostOptions = {
  *  and returns a transaction ready for signing and submission.
  * 
  * @param {string} url The M1 API url.
- * @param {EvmApproveBody | EvmDepositBody | EvmSwapBody | EvmRedemptionBody |
- * EvmAtomicDepositBody | EvmAtomicRedemptionBody | EvmAtomicSwapBody | undefined} body The POST body.
+ * @param {PostBody} body The POST body.
  * @returns {Promise<ContractTransaction | undefined>} A ContractTransaction object 
  * or undefined if an error occurs.
  */

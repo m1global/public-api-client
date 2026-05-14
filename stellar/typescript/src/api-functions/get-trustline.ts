@@ -11,9 +11,7 @@ import { getFromAPI } from "./get-from-api";
  * @returns {Promise<Balance | undefined>} A Balance object or undefined if an error
  *  occurs.
  * 
- * @dev The asset assetCode must either be "USDM0", "USDM1", or a collateral supported
- *  by the Broker contract.
- * @dev See get-broker-config.ts
+ * @dev The caller supplies the asset code and issuer directly.
  */
 export async function getTrustline(
     assetCode: string,

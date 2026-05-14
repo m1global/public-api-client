@@ -59,7 +59,7 @@ import {
  *
  * Inject your keypair secret via the command line via: node dist/atomic-deposit.js -s "$(stellar keys secret alice)"
  *
- * Create the wallet first and then contact M1 Global for your client JWT for API access
+ * Create the wallet first and then contact M1X for your client JWT for API access
  * and let us know what your Stellar testnet wallet public address is.
  *
  * This script and others in this directory require a .env file read by dotenv at the root level,

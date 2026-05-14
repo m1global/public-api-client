@@ -1,4 +1,4 @@
-import { PriceAttestation } from "../interfaces";
+import { PriceAttestationResponse } from "../interfaces";
 import { getFromAPI } from "./get-from-api";
 
 /**********************************************************************************
@@ -12,7 +12,7 @@ import { getFromAPI } from "./get-from-api";
  */
 export async function getUsdm1PriceAttestation(
     requesterAddress: string,
-    isTestnet = false): Promise<PriceAttestation | undefined> {
+    isTestnet = false): Promise<PriceAttestationResponse | undefined> {
 
     // The base url for the M1 API must be added to the environment.
     if (!process.env.M1_API_BASE_URL) {
@@ -27,5 +27,5 @@ export async function getUsdm1PriceAttestation(
         url = `${url}?isTestnet=true`;
     }
 
-    return await getFromAPI<PriceAttestation>(url, true)
+    return await getFromAPI<PriceAttestationResponse>(url, true)
 }

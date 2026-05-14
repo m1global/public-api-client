@@ -26,7 +26,7 @@ import {
  * which is subsequently signed and submitted.
  * 
  * Uses a preconfigured keypair that is created by the create-keypair.ts node script.
- * The public address of this wallet MUST be whitelisted by M1 Global,
+ * The public address of this wallet MUST be whitelisted by M1X,
  * otherwise the deposit will fail.
  * 
  * Call deposit first to receive USDM1 that can be swapped for USDM0.

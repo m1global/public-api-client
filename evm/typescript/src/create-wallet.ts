@@ -6,7 +6,7 @@ import { Wallet } from "ethers";
 /**************************************************************************************
  * Node command to create a new EVM wallet via ethers and store it to a local json file.
  * 
- * The public address of the wallet must be conveyed to M1 Global for whitelisting or
+ * The public address of the wallet must be conveyed to M1X for whitelisting or
  *  subsequent calls to the M1 API such as deposit will all fail.
  * 
  * Must be transpiled (npm run build).

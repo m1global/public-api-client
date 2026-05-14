@@ -2,14 +2,14 @@ import { TreasuryConfig } from "../interfaces";
 import { getFromAPI } from "./get-from-api";
 
 /**********************************************************************************
- * Typescript function that calls the M1 API Ethereum endpoint for the Broker 
- * contract configuration.
+ * Typescript function that calls the M1 API Solana endpoint for the Treasury
+ * configuration.
  * 
- * @returns {Promise<Balance | undefined>} An EvmBrokerConfig object or undefined 
+ * @returns {Promise<TreasuryConfig | undefined>} A TreasuryConfig object or undefined
  *  if an error occurs.
  * 
- * @dev The Broker configuration lists its address, data on the USDM tokens,
- *  and all collaterals supported by the Broker. 
+ * @dev The Treasury configuration lists its address, data on the USDM tokens,
+ *  and all collaterals supported by the Treasury.
  */
 export async function getTresasuryConfig(isTestnet = false): Promise<TreasuryConfig | undefined> {
 

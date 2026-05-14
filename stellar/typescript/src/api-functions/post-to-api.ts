@@ -4,15 +4,11 @@ import {
     StellarAllowanceBody,
     StellarAtomicDepositBody,
     StellarAtomicRedemptionBody,
-    StellarAtomicSwapBody,
-    StellarDepositBody,
-    StellarRedemptionBody,
-    StellarSwapBody
+    StellarAtomicSwapBody
 } from "../interfaces";
 import { logRequest, logResponse } from "./util";
 
-type PostBody = StellarAllowanceBody | StellarDepositBody | StellarSwapBody | StellarRedemptionBody |
-    StellarAtomicDepositBody | StellarAtomicRedemptionBody | StellarAtomicSwapBody |
+type PostBody = StellarAllowanceBody | StellarAtomicDepositBody | StellarAtomicRedemptionBody | StellarAtomicSwapBody |
     Record<string, unknown> | undefined;
 
 type PostOptions = {

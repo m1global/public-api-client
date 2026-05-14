@@ -3,13 +3,12 @@ import axios from "axios";
 import {
     Allowance,
     Balance,
-    Deposit,
     DepositPermit,
-    EvmBrokerConfig,
+    EvmAtomicBrokerRedemption,
+    EvmAtomicBrokerConfig,
     PriceAttestation,
+    PriceAttestationResponse,
     RedeemPermit,
-    Redemption,
-    Swap,
     TxResult,
     WhitelistStatus
 } from "../interfaces";
@@ -25,9 +24,9 @@ import { logRequest, logResponse } from "./util";
  * @returns {Promise<T | undefined>} The parsed response body or undefined if an
  *  error occurs.
  */
-export async function getFromAPI<T extends EvmBrokerConfig | Allowance |
-    Deposit | Redemption | Swap | Balance | WhitelistStatus | TxResult |
-    PriceAttestation | DepositPermit | RedeemPermit>(
+export async function getFromAPI<T extends EvmAtomicBrokerConfig | EvmAtomicBrokerRedemption | Allowance |
+    Balance | WhitelistStatus | TxResult |
+    PriceAttestation | PriceAttestationResponse | DepositPermit | RedeemPermit>(
         url: string,
         isSecure = true): Promise<T | undefined> {
 

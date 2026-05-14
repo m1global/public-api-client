@@ -15,7 +15,7 @@ import {
 import { approve } from "./api-functions/approve";
 import { getAllowance } from "./api-functions/get-allowance";
 import { getBalance } from "./api-functions/get-balance";
-import { safeStringify, sleep } from "./api-functions/util";
+import { safeStringify } from "./api-functions/util";
 import { getWhitelistStatus } from "./api-functions/get-whitelist-status";
 import { getAtomicBrokerConfig } from "./api-functions/get-atomic-broker-config";
 import { getUsdm1PriceAttestation } from "./api-functions/get-usdm1-price-attestation";
@@ -42,11 +42,11 @@ import {
  * which is subsequently signed and submitted.
  * 
  * Uses a preconfigured wallet that is created by the create-wallet.ts node script.
- * The public address of this wallet must be whitelisted by M1 Global in the
+ * The public address of this wallet must be whitelisted by M1X in the
  * shared Solana-backed whitelist used by attestation/permit generation,
  * otherwise the redemption request will fail before settlement.
  * 
- * Create the wallet first and then contact M1 Global for your client JWT for API access
+ * Create the wallet first and then contact M1X for your client JWT for API access
  * and let us know what your Sepolia wallet public address is if permit issuance
  * for your account is required operationally.
  * 
@@ -66,6 +66,7 @@ pgm.version("0.0.1")
     .parse(process.argv);
 
 const options = pgm.opts();
+const REDEMPTION_DETAILS_PATH = "redemption-details.json";
 
 (async () => {
 
@@ -142,13 +143,13 @@ const options = pgm.opts();
 
     // Fetch and report balances of both USDM0 and mock.
     // The same block will be run a the end to see the final result.
-    let usdm0Balance = await getBalance("USDM0", wallet.address, true);
+    let usdm0Balance = await getBalance("USDM0", wallet.address, true, brokerConfig);
     if (!usdm0Balance) {
         console.error("failed to fetch balance for USDM0");
         return;
     }
     console.info(`balance of USDM0: ${usdm0Balance?.balance}`);
-    let mockBalance = await getBalance("mock", wallet.address, true);
+    let mockBalance = await getBalance("mock", wallet.address, true, brokerConfig);
     console.info(`balance of mock: ${mockBalance?.balance}`);
     const balancesBeforeRedemption = {
         USDM0: readBalance(usdm0Balance, "USDM0"),
@@ -256,30 +257,21 @@ const options = pgm.opts();
     console.info("redemption record:");
     console.info(safeStringify(redemptionRecord));
 
-    // Sleep briefly to allow the RPC node to reflect the confirmed state.
-    console.info("sleeping 120 seconds for redemption processing.");
-    await sleep(120000);
-
-    // Re-fetch the balances.
-    // USDM0 should be 0.
-    // mock should be 0.
-    usdm0Balance = await getBalance("USDM0", wallet.address, true);
-    console.info(`balance of USDM0: ${usdm0Balance?.balance}`);
-    mockBalance = await getBalance("mock", wallet.address, true);
-    console.info(`balance of mock: ${mockBalance?.balance}`);
-    validateOneToOneRedemption({
-        chainTag: "[evm]",
-        stage: "after-submit",
-        before: balancesBeforeRedemption,
-        after: {
-            USDM0: readBalance(usdm0Balance, "USDM0"),
-            mock: readBalance(mockBalance, "mock"),
-        },
-        inputToken: "USDM0",
-        inputAmount: BigInt(amount),
+    fs.writeFileSync(REDEMPTION_DETAILS_PATH, JSON.stringify({
+        chain: "evm",
+        redeemer: wallet.address,
+        amount,
+        inputToken: USDM0_TOKEN_CODE,
         inputDecimals: brokerConfig.usdm0?.decimals,
         outputToken: "mock",
         outputDecimals: mock.decimals,
-        requireOutputIncrease: true,
-    });
+        collateralAddress: mock.address,
+        before: {
+            USDM0: balancesBeforeRedemption.USDM0.toString(),
+            mock: balancesBeforeRedemption.mock.toString(),
+        },
+        txHash: txResp.hash,
+        confirmedBlock: txReceipt?.blockNumber ?? null,
+        timestamp: new Date().toISOString(),
+    }, null, 2));
 })();

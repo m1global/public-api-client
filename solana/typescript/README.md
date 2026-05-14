@@ -1,6 +1,6 @@
-# M1 Global TypeScript API Client for Solana
+# M1X TypeScript API Client for Solana
 
-The M1 Global TypeScript API Client for Solana is a set of example Node.js scripts that demonstrates how to interact with the M1 API and the Solana network to deposit mock collateral, swap USDM1 for USDM0, and redeem USDM0 for collateral on Solana Devnet.
+The M1X TypeScript API Client for Solana is a set of example Node.js scripts that demonstrates how to interact with the M1 API and the Solana network to deposit mock collateral, swap USDM1 for USDM0, and redeem USDM0 for collateral on Solana Devnet.
 
 These scripts are intended as reference implementations and are not a comprehensive exploration of the full API feature set.
 
@@ -13,11 +13,11 @@ These scripts are intended as reference implementations and are not a comprehens
 
 ## Authentication
 
-Most M1 API endpoints require a Client JWT transmitted in the `Authorization` header as a bearer token. Client JWTs have a TTL of 365 days. Contact M1 Global to receive your Client JWT.
+Most M1 API endpoints require a Client JWT transmitted in the `Authorization` header as a bearer token. Client JWTs have a TTL of 365 days. Contact M1X to receive your Client JWT.
 
 ## Solana Whitelist
 
-The M1 Global Solana deposit and redeem flows require your Solana public key to be whitelisted. Provide your public key to M1 Global when you register for your Client JWT.
+The M1X Solana deposit and redeem flows require your Solana public key to be whitelisted. Provide your public key to M1X when you register for your Client JWT.
 
 ## Wallet Setup
 
@@ -27,7 +27,7 @@ These scripts use a keypair stored as `id.json` at the root of the project. Use 
 npm run create-keypair
 ```
 
-This writes a new Solana keypair to `id.json`. The public key is printed to the console — provide it to M1 Global for whitelisting.
+This writes a new Solana keypair to `id.json`. The public key is printed to the console — provide it to M1X for whitelisting.
 
 The wallet must hold SOL to pay for transaction fees. Fund it using the [Solana Devnet faucet](https://faucet.solana.com/).
 
@@ -109,7 +109,7 @@ The redemption amount defaults to `100000000` (0.1 USDM0 in base units).
 
 6. **Fund the wallet** with Devnet SOL at [faucet.solana.com](https://faucet.solana.com/).
 
-7. **Contact M1 Global** to provide your Solana public key and receive your Client JWT.
+7. **Contact M1X** to provide your Solana public key and receive your Client JWT.
 
 8. **Run a script**, e.g.:
 

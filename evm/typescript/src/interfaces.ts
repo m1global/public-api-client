@@ -1,12 +1,3 @@
-import { StringLiteral } from "typescript";
-
-export interface EvmBrokerConfig {
-    address: string;
-    usdm0: Erc20 | undefined;
-    usdm1: Erc20 | undefined;
-    collaterals: Erc20[] | undefined
-}
-
 export interface EvmAtomicBrokerConfig {
     address: string;
     usdm0: Erc20 | undefined;
@@ -33,29 +24,6 @@ export interface EvmApproveBody {
     spender: string,
     amount: string,
     isTestnet: boolean,
-}
-
-export interface EvmDepositBody {
-    depositor: string,
-    collateral: string,
-    amount: string,
-    tokenCode: string,
-    isTestnet?: boolean,
-}
-
-export interface EvmRedemptionBody {
-    redeemer: string,
-    tokenCode: string,
-    amount: string,
-    collateral: string,
-    isTestnet?: boolean,
-}
-
-export interface EvmSwapBody {
-    swapper: string,
-    inputTokenCode: string,
-    amount: string,
-    isTestnet?: boolean,
 }
 
 export interface EvmAtomicDepositBody {
@@ -90,28 +58,12 @@ export interface EvmAtomicSwapBody {
     isTestnet?: boolean,
 }
 
-export interface Deposit {
-    depositor: string;
-    amount: BigInt;
-    amountApproved?: BigInt;
-    collateral: string;
-    token: string;
-}
-
-export interface Redemption {
+export interface EvmAtomicBrokerRedemption {
     redeemer: string;
     amount: BigInt;
     amountApproved?: BigInt;
     token: string;
     collateral: string;
-}
-
-export interface Swap {
-    swapper: string;
-    amount: BigInt;
-    amountApproved?: BigInt;
-    inputToken: string;
-    outputToken: string;
 }
 
 export interface Balance {
@@ -137,6 +89,16 @@ export interface PriceAttestation {
     notAfter: string;
     seq: string;
     signature: string;
+}
+
+export interface PriceAttestationResponse extends PriceAttestation {
+    consumer: string;
+    feedId: string;
+    domainName: string;
+    domainVersion: string;
+    chainId: string;
+    verifyingContract: string;
+    digest: string;
 }
 
 export type DepositPermit = {

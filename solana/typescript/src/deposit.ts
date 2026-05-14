@@ -16,7 +16,6 @@ import { getTresasuryConfig } from "./api-functions/get-treasury-config";
 import { SOLANA_MOCK_SYMBOL, USDM1_TOKEN_CODE } from "./consts";
 import { getBalance } from "./api-functions/get-balance";
 import { faucet } from "./api-functions/faucet";
-import { getOperation } from "./api-functions/operations";
 import { deposit } from "./api-functions/deposit";
 import { createAssociatedTokenAccountIdempotent, getAssociatedTokenAddress } from "@solana/spl-token";
 import { deserializeIxSignAndSend } from "./funcs";
@@ -37,10 +36,10 @@ import {
  * which is subsequently signed and submitted.
  * 
  * Uses a preconfigured keypair that is created by the create-keypair.ts node script.
- * The public address of this wallet MUST be whitelisted by M1 Global,
+ * The public address of this wallet MUST be whitelisted by M1X,
  * otherwise the deposit will fail.
  * 
- * Create the wallet first and then contact M1 Global for your client JWT for API access
+ * Create the wallet first and then contact M1X for your client JWT for API access
  * and let us know what your Solana wallet public address is.
  * 
  * Don't forget to put SOL in the wallet via a faucet (https://faucet.solana.com/).
@@ -163,25 +162,12 @@ const options = pgm.opts();
 
         console.error("Insufficient collateral balance.")
 
-        // Attempt a faucet request.
-        // Returns an operation id that needs to be polled 
-        // (the internal M1 service that perfoms the faucet
-        // request is async and message driven and therefore
-        // does not return anything).
-        const opId = await faucet(SOLANA_MOCK_SYMBOL, keypair.publicKey.toBase58());
-        if (!opId) {
+        const tx = await faucet(SOLANA_MOCK_SYMBOL, keypair.publicKey.toBase58());
+        if (!tx) {
             console.error("faucet failure");
             return;
         }
-
-        // Poll the operation API endpoint for 10 seconds.
-        const tx = await getOperation(opId, 10);
-        if (!tx) {
-            // If after 10 seconds there is no transaction, 
-            // assume the request failed.
-            console.error("faucet transaction did not get mined");
-            return;
-        }
+        console.info(`faucet tx: ${tx}`);
 
         mockBalance = await getBalance(
             SOLANA_MOCK_SYMBOL,

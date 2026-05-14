@@ -2,15 +2,13 @@ import axios from "axios";
 
 /**********************************************************************************
  * Typescript function that calls the M1 API Solana endpoint for faucets
- * and returns an operation id.
+ * and returns the submitted transaction hash.
  * 
  * @param {string} symbol The symbol of the token being requested.
  * @param {string} recipientAddress The recipient of the faucet tokens.
  * 
- * @returns {Promise<string | undefined>} The operation id associated with the
- *  request or undefined if an error occurs.
- * 
- * @dev The operation id can be used to fetch the associated Solana devnet transaction hash.
+ * @returns {Promise<string | undefined>} The submitted transaction hash or
+ *  undefined if an error occurs.
  */
 export async function faucet(symbol: string, recipientAddress: string): Promise<string | undefined> {
 
@@ -38,10 +36,10 @@ export async function faucet(symbol: string, recipientAddress: string): Promise<
                     "Authorization": `Bearer ${process.env.M1_API_JWT}`,
                 }
             });
-        if (!apiResp || !apiResp.data || !apiResp.data.opId) {
+        if (!apiResp || !apiResp.data || !apiResp.data.tx) {
             throw new Error("no response from server");
         }
-        return apiResp.data.opId;
+        return apiResp.data.tx;
     } catch (err) {
         if (axios.isAxiosError(err)) {
             console.error(`post to faucet endpoint failed: ${JSON.stringify(err.response?.data)} with status ${err.response?.status}`);

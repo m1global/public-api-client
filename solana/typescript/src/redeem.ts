@@ -4,8 +4,6 @@ import * as anchor from "@coral-xyz/anchor";
 import {
     Connection,
     Keypair,
-    PublicKey,
-    TransactionInstruction,
 } from "@solana/web3.js";
 
 import "dotenv/config";
@@ -17,9 +15,7 @@ import { TreasuryConfig } from "./interfaces";
 import { getTresasuryConfig } from "./api-functions/get-treasury-config";
 import { SOLANA_MOCK_SYMBOL, USDM0_TOKEN_CODE } from "./consts";
 import { getBalance } from "./api-functions/get-balance";
-import { createAssociatedTokenAccountIdempotentInstruction } from "@solana/spl-token";
 import { deserializeAccountMetas, signAndSendInstructions } from "./funcs";
-import { sleep } from "./api-functions/util";
 import { redeem } from "./api-functions/redeem";
 import {
     readBalance,
@@ -35,10 +31,10 @@ import {
  * which is subsequently signed and submitted.
  * 
  * Uses a preconfigured keypair that is created by the create-keypair.ts node script.
- * The public address of this wallet MUST be whitelisted by M1 Global,
+ * The public address of this wallet MUST be whitelisted by M1X,
  * otherwise the deposit will fail.
  * 
- * Create the wallet first and then contact M1 Global for your client JWT for API access
+ * Create the wallet first and then contact M1X for your client JWT for API access
  * and let us know what your Solana wallet public address is.
  * 
  * Don't forget to put SOL in the wallet via a faucet (https://faucet.solana.com/).
@@ -56,6 +52,7 @@ pgm.version("0.0.1")
     .parse(process.argv);
 
 const options = pgm.opts();
+const REDEMPTION_DETAILS_PATH = "redemption-details.json";
 
 (async () => {
 
@@ -160,48 +157,34 @@ const options = pgm.opts();
         true
     );
 
-    if (!serializedIx) {
+    if (!serializedIx || !Array.isArray(serializedIx)) {
         console.error("no transaction from server");
         return;
     }
 
-    // queueRedemption expects the redemption escrow ATA to already exist.
-    // The API returns the queue instruction only, so create the escrow ATA
-    // client-side using the account metas already encoded in the instruction.
-    const ixKeys = deserializeAccountMetas(serializedIx.keys);
-    const redemption = ixKeys[3]?.pubkey;
-    const mint = ixKeys[7]?.pubkey;
-    const redemptionEscrowAccount = ixKeys[10]?.pubkey;
-    const tokenProgram = ixKeys[13]?.pubkey;
+    const instructions = serializedIx.map((ix) => ({
+        keys: deserializeAccountMetas(ix.keys),
+        programId: new anchor.web3.PublicKey(ix.programId),
+        data: Buffer.from(ix.data, "base64"),
+    }));
 
-    if (!redemption || !mint || !redemptionEscrowAccount || !tokenProgram) {
-        console.error("redemption instruction missing expected accounts");
-        return;
-    }
+    await signAndSendInstructions(connection, instructions, keypair);
 
-    const createEscrowAtaIx = createAssociatedTokenAccountIdempotentInstruction(
-        keypair.publicKey,
-        redemptionEscrowAccount,
-        redemption,
-        mint,
-        tokenProgram,
-    );
-
-    const redemptionIx: TransactionInstruction = {
-        keys: ixKeys,
-        programId: new PublicKey(serializedIx.programId),
-        data: Buffer.from(serializedIx.data, "base64"),
-    };
-
-    console.info(
-        `[solana] redeem instruction program=${serializedIx.programId} ` +
-        `accounts=${serializedIx.keys.length} dataLength=${serializedIx.data.length}`
-    );
-    console.info(
-        `[solana] redemption accounts redemption=${redemption.toBase58()} ` +
-        `escrowAta=${redemptionEscrowAccount.toBase58()} mint=${mint.toBase58()}`
-    );
-    await signAndSendInstructions(connection, [createEscrowAtaIx, redemptionIx], keypair);
+    fs.writeFileSync(REDEMPTION_DETAILS_PATH, JSON.stringify({
+        chain: "solana",
+        redeemer: keypair.publicKey.toBase58(),
+        amount,
+        inputToken: USDM0_TOKEN_CODE,
+        inputDecimals: config.usdm0?.decimals,
+        outputToken: SOLANA_MOCK_SYMBOL,
+        outputDecimals: mock.decimals,
+        collateralAddress: mock.mintAddress,
+        before: {
+            USDM0: balancesBeforeRedemption.USDM0.toString(),
+            MOCK: balancesBeforeRedemption.MOCK.toString(),
+        },
+        timestamp: new Date().toISOString(),
+    }, null, 2));
 
     // Re-fetch and report balances of both USDM0 and MOCK.
     usdm0Balance = await getBalance(
@@ -228,38 +211,6 @@ const options = pgm.opts();
         outputToken: "MOCK",
         outputDecimals: mock.decimals,
         requireOutputIncrease: false,
-    });
-
-    // Wait for the API to pick up the queued redemption and process it.
-    // On devnet, a background task polls for queued redemptions and fulfills them for mock collateral.
-    console.info("sleeping for 90 seconds to wait for redemption processing...");
-    await sleep(90 * 1000);
-
-    // Re-fetch balances to check if the redemption was fulfilled.
-    usdm0Balance = await getBalance(
-        USDM0_TOKEN_CODE,
-        keypair.publicKey.toBase58(),
-        true);
-    console.info(`balance of USDM0: ${usdm0Balance?.balance}`);
-    mockBalance = await getBalance(
-        SOLANA_MOCK_SYMBOL,
-        keypair.publicKey.toBase58(),
-        true);
-    console.info(`balance of MOCK: ${mockBalance?.balance}`);
-    validateOneToOneRedemption({
-        chainTag: "[solana]",
-        stage: "after-settlement",
-        before: balancesBeforeRedemption,
-        after: {
-            USDM0: readBalance(usdm0Balance, USDM0_TOKEN_CODE),
-            MOCK: readBalance(mockBalance, SOLANA_MOCK_SYMBOL),
-        },
-        inputToken: USDM0_TOKEN_CODE,
-        inputAmount: BigInt(amount),
-        inputDecimals: config.usdm0?.decimals,
-        outputToken: "MOCK",
-        outputDecimals: mock.decimals,
-        requireOutputIncrease: true,
     });
 
 })();

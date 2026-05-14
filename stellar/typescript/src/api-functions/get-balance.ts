@@ -1,5 +1,4 @@
-import { Balance, StellarAtomicBrokerConfig, StellarBrokerConfig } from "../interfaces";
-import { getBrokerConfig } from "./get-broker-config";
+import { Balance, StellarAtomicBrokerConfig } from "../interfaces";
 import { getFromAPI } from "./get-from-api";
 
 /**********************************************************************************
@@ -14,14 +13,13 @@ import { getFromAPI } from "./get-from-api";
  *  occurs.
  * 
  * @dev The asset assetCode must either be "USDM0", "USDM1", or a collateral supported
- *  by the Broker contract.
- * @dev See get-broker-config.ts
+ *  by the Atomic Broker config supplied by the caller.
  */
 export async function getBalance(
     assetCode: string,
     ownerAddress: string,
     isTestnet: boolean,
-    brokerConfig?: StellarBrokerConfig | StellarAtomicBrokerConfig,
+    brokerConfig?: StellarAtomicBrokerConfig,
 ): Promise<Balance | undefined> {
 
     var url: string;
@@ -38,9 +36,12 @@ export async function getBalance(
         const tokenId = +assetCode.charAt(4);
         url = `${process.env.M1_API_BASE_URL}/stellar/usdm/${tokenId}/balances/${ownerAddress}`;
     } else {
-        const config = brokerConfig ?? await getBrokerConfig(isTestnet);
-        // Check if the assetCode is a collateral supported by the Broker
-        const collateral = config?.collaterals?.find(col => col.symbol?.toLowerCase() == assetCode.toLowerCase());
+        if (!brokerConfig) {
+            console.error(`atomic broker config is required to resolve collateral assetCode ${assetCode}`);
+            return;
+        }
+        // Check if the assetCode is a collateral supported by the Atomic Broker.
+        const collateral = brokerConfig.collaterals?.find(col => col.symbol?.toLowerCase() == assetCode.toLowerCase());
         if (!collateral) {
             console.error(`assetCode ${assetCode} is not a valid collateral`);
             return;
