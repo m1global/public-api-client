@@ -1,5 +1,6 @@
 import axios from "axios";
 
+import { getM1ApiV2BaseUrl } from "./api-base";
 /**********************************************************************************
  * Typescript function that calls the M1 API Solana endpoint for faucets
  * and returns the submitted transaction hash.
@@ -12,12 +13,6 @@ import axios from "axios";
  */
 export async function faucet(symbol: string, recipientAddress: string): Promise<string | undefined> {
 
-    // The base url for the M1 API must be added to the environment.
-    if (!process.env.M1_API_BASE_URL) {
-        console.error("no M1_API_BASE_URL set in environment!");
-        return;
-    }
-
     // Your M1 API Client JWT must be added to the environment.
     if (!process.env.M1_API_JWT) {
         console.error("no M1_API_JWT set in environment!");
@@ -25,7 +20,7 @@ export async function faucet(symbol: string, recipientAddress: string): Promise<
     }
 
     // Note: we do not append isTestnet because faucet endpoints are only supported on testnets.
-    const url = `${process.env.M1_API_BASE_URL}/solana/faucet/${symbol}/${recipientAddress}`;
+    const url = `${getM1ApiV2BaseUrl()}/solana/faucet/${symbol}/${recipientAddress}`;
 
     try {
         const apiResp = await axios.post(url,

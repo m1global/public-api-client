@@ -1,7 +1,7 @@
-import { getM1ApiV1BaseUrl } from "./api-base";
-import { TreasuryConfig } from "../interfaces";
-import { getFromAPI } from "./get-from-api";
+import { TreasuryConfig } from "../interfaces-v2";
+import { getFromAPI } from "./get-from-api-v2";
 
+import { getM1ApiV2BaseUrl } from "./api-base";
 /**********************************************************************************
  * Typescript function that calls the M1 API Solana endpoint for the Treasury
  * configuration.
@@ -14,7 +14,7 @@ import { getFromAPI } from "./get-from-api";
  */
 export async function getTresasuryConfig(isTestnet = false): Promise<TreasuryConfig | undefined> {
 
-    let url = `${getM1ApiV1BaseUrl()}/solana/treasury`;
+    let url = `${getM1ApiV2BaseUrl()}/solana/treasury`;
 
     if (isTestnet) {
         url += "?isTestnet=true"

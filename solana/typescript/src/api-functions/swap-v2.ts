@@ -1,8 +1,7 @@
-import { TransactionInstruction } from "@solana/web3.js";
+import { SerializedInstruction, SolanaPriceAttestationInput, SolanaSwapBody, SolanaSwapPermit } from "../interfaces-v2";
+import { postToAPI } from "./post-to-api-v2";
 
-import { SerializedInstruction, SolanaSwapBody } from "../interfaces";
-import { postToAPI } from "./post-to-api";
-
+import { getM1ApiV2BaseUrl } from "./api-base";
 /**********************************************************************************
  * Typescript function that calls the M1 API Solana endpoint for swaps
  * and returns a transaction ready for signing and submission.
@@ -20,23 +19,21 @@ export async function swap(
     swapperAddress: string,
     inputTokenCode: string,
     amount: string,
-    isTestnet = false): Promise<SerializedInstruction | undefined> {
+    tokenAttestation: SolanaPriceAttestationInput,
+    swapPermit: SolanaSwapPermit,
+    isTestnet = false): Promise<SerializedInstruction[] | undefined> {
 
-    // The base url for the M1 API must be added to the environment.
-    if (!process.env.M1_API_BASE_URL) {
-        console.error("no M1_API_BASE_URL set in environemnt!");
-        return;
-    }
-
-    const url = `${process.env.M1_API_BASE_URL}/solana/treasury/swaps`;
+    const url = `${getM1ApiV2BaseUrl()}/solana/treasury/swaps`;
 
     const body: SolanaSwapBody = {
         swapper: swapperAddress,
         inputTokenCode,
         amount,
+        tokenAttestation,
+        swapPermit,
         isTestnet,
     }
 
-    return await postToAPI(url, body)
+    return await postToAPI<SerializedInstruction[]>(url, body)
 
 }

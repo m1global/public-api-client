@@ -1,6 +1,13 @@
+import { getM1ApiV2BaseUrl } from "./api-base";
 
-import { SerializedInstruction, SolanaDepositBody } from "../interfaces";
-import { postToAPI } from "./post-to-api";
+
+import {
+    SerializedInstruction,
+    SolanaDepositBody,
+    SolanaDepositPermit,
+    SolanaPriceAttestationInput,
+} from "../interfaces-v2";
+import { postToAPI } from "./post-to-api-v2";
 
 /**********************************************************************************
  * Typescript function that calls the M1 API Solana endpoint for deposits
@@ -18,29 +25,33 @@ import { postToAPI } from "./post-to-api";
  */
 export async function deposit(
     depositorAddress: string,
+    recipientAddress: string,
     collateralAddress: string,
     amount: string,
     tokenCode: string,
+    collateralAttestation: SolanaPriceAttestationInput | undefined,
+    tokenAttestation: SolanaPriceAttestationInput,
+    depositPermit: SolanaDepositPermit,
     isTestnet = false,
-): Promise<SerializedInstruction | undefined> {
+): Promise<SerializedInstruction[] | undefined> {
 
     // The base url for the M1 API must be added to the environment.
-    if (!process.env.M1_API_BASE_URL) {
-        console.error("no M1_API_BASE_URL set in environemnt!");
-        return;
-    }
-
-    // The base url for the M1 API must be added to the environment.
-    const url = `${process.env.M1_API_BASE_URL}/solana/treasury/deposits`;
+    const url = `${getM1ApiV2BaseUrl()}/solana/treasury/deposits`;
 
     // POST payload
     const body: SolanaDepositBody = {
         depositor: depositorAddress,
+        recipient: recipientAddress,
         collateral: collateralAddress,
         amount,
         tokenCode,
+        tokenAttestation,
+        depositPermit,
         isTestnet,
     }
+    if (collateralAttestation !== undefined) {
+        body.collateralAttestation = collateralAttestation;
+    }
 
-    return await postToAPI(url, body);
+    return await postToAPI<SerializedInstruction[]>(url, body);
 }

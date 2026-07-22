@@ -1,22 +1,36 @@
 import axios from "axios";
 
-import { SerializedInstruction, SolanaDepositBody, SolanaRedemptionBody, SolanaSwapBody } from "../interfaces";
+import {
+    SerializedInstructionResponse,
+    SolanaDepositBody,
+    SolanaPermitRequestBody,
+    SolanaRedemptionBody,
+    SolanaSwapBody,
+} from "../interfaces-v2";
 import { logRequest, logResponse } from "./util";
+
+type PostBody = SolanaDepositBody | SolanaSwapBody | SolanaRedemptionBody |
+    SolanaPermitRequestBody | Record<string, unknown> | undefined;
+
+type PostOptions = {
+    returnRaw?: boolean;
+};
 
 /**********************************************************************************
  * Generic Typescript function that executes a POST on an M1 API Solana endpoint
  *  and returns a transaction instruction to add to a transaction.
  * 
  * @param {string} url The M1 API url.
- * @param {SolanaDepositBody | SolanaSwapBody | SolanaRedemptionBody | undefined} body The POST body.
+ * @param {PostBody} body The POST body.
  * 
  * @returns {Promise<SerializedInstruction | undefined>} A Balance object or undefined if an error
  *  occurs.
  */
-export async function postToAPI(
+export async function postToAPI<T = SerializedInstructionResponse>(
     url: string,
-    body: SolanaDepositBody | SolanaSwapBody | SolanaRedemptionBody | undefined):
-    Promise<SerializedInstruction | undefined> {
+    body: PostBody,
+    options?: PostOptions):
+    Promise<T | undefined> {
 
     // Your M1 API Client JWT must be added to the environment.
     if (!process.env.M1_API_JWT) {
@@ -37,11 +51,20 @@ export async function postToAPI(
                 }
             });
 
-        if (!apiResp || !apiResp.data || !apiResp.data.ix) {
+        if (!apiResp || !apiResp.data) {
             throw new Error("no response from server")
         }
         logResponse("POST", url, apiResp.data);
-        return apiResp.data.ix;
+
+        if (options?.returnRaw) {
+            return apiResp.data as T;
+        }
+
+        if (!apiResp.data.ix) {
+            throw new Error("no ix in response from server");
+        }
+
+        return apiResp.data.ix as T;
 
     } catch (err) {
         if (axios.isAxiosError(err)) {
