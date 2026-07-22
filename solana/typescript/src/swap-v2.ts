@@ -6,17 +6,20 @@ import "dotenv/config";
 
 import { Command } from "commander-ts";
 import { Connection, Keypair } from "@solana/web3.js";
-import { getTresasuryConfig } from "./api-functions/get-treasury-config";
+import { getTresasuryConfig } from "./api-functions/get-treasury-config-v2";
 import { createAssociatedTokenAccountIdempotent, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { USDM0_TOKEN_CODE, USDM1_TOKEN_CODE } from "./consts";
-import { swap } from "./api-functions/swap";
-import { getBalance } from "./api-functions/get-balance";
-import { deserializeIxSignAndSend } from "./funcs";
+import { swap } from "./api-functions/swap-v2";
+import { getSolanaSwapPermit } from "./api-functions/get-solana-swap-permit-v2";
+import { getBalance } from "./api-functions/get-balance-v2";
+import { getSolanaUsdm1PriceAttestation } from "./api-functions/get-usdm1-price-attestation-v2";
+import { deserializeAccountMetas, requireTreasuryLookupTableAddress, signAndSendInstructionsV0WithLookupTable } from "./funcs-v2";
 import {
     readBalance,
     validateHeuristicBalanceChange,
 } from "./balance-validation";
 
+import { getM1ApiV2BaseUrl } from "./api-functions/api-base";
 /**********************************************************************************
  * Node comand to peform a swap of USDM1 for USDM0 on Solana Devnet.
  * 
@@ -67,7 +70,7 @@ const options = pgm.opts();
 
     console.info(`operating as ${keypair.publicKey.toBase58()}`);
     console.info(`[solana] cluster=devnet rpc=${process.env.SOLANA_DEVNET_RPC_URL}`);
-    console.info(`[solana] api base url=${process.env.M1_API_BASE_URL}`);
+    console.info(`[solana] api base url=${getM1ApiV2BaseUrl()}`);
     console.info(`[solana] flow=swap amount=${amount} inputToken=${USDM1_TOKEN_CODE} outputToken=${USDM0_TOKEN_CODE}`);
 
     const config = await getTresasuryConfig(true);
@@ -75,6 +78,7 @@ const options = pgm.opts();
         console.error("no treasury config");
         return;
     }
+    const lookupTableAddress = requireTreasuryLookupTableAddress(config);
     if (!config.usdm0 || !config.usdm0.mintAddress) {
         console.error("no USDM0 configured");
         return;
@@ -120,23 +124,55 @@ const options = pgm.opts();
         TOKEN_2022_PROGRAM_ID
     );
 
+    const tokenAttestation = await getSolanaUsdm1PriceAttestation(
+        keypair.publicKey.toBase58(),
+        "swap",
+        undefined,
+        true
+    );
+    if (!tokenAttestation) {
+        console.error("failed to fetch price attestation for USDM1");
+        return;
+    }
+
+    const swapPermit = await getSolanaSwapPermit(
+        keypair.publicKey.toBase58(),
+        USDM1_TOKEN_CODE,
+        USDM0_TOKEN_CODE,
+        amount,
+        true
+    );
+    if (!swapPermit) {
+        console.error("failed to fetch swap permit");
+        return;
+    }
+
     const serializedIx = await swap(
         keypair.publicKey.toBase58(),
         USDM1_TOKEN_CODE,
         amount,
+        tokenAttestation,
+        swapPermit,
         true
     );
 
-    if (!serializedIx) {
+    if (!serializedIx || !Array.isArray(serializedIx)) {
         console.error("no instruction from server");
         return;
     }
 
-    console.info(
-        `[solana] swap instruction program=${serializedIx.programId} ` +
-        `accounts=${serializedIx.keys.length} dataLength=${serializedIx.data.length}`
+    const instructions = serializedIx.map((ix) => ({
+        keys: deserializeAccountMetas(ix.keys),
+        programId: new anchor.web3.PublicKey(ix.programId),
+        data: Buffer.from(ix.data, "base64"),
+    }));
+
+    await signAndSendInstructionsV0WithLookupTable(
+        connection,
+        instructions,
+        keypair,
+        lookupTableAddress
     );
-    await deserializeIxSignAndSend(connection, serializedIx, keypair);
 
     // Re-fetch and report balances of both mock and USDM1
     usdm1Balance = await getBalance(

@@ -10,18 +10,21 @@ import "dotenv/config";
 
 import { Command } from "commander-ts";
 
-import { getWhitelistStatus } from "./api-functions/get-whitelist-status";
-import { TreasuryConfig } from "./interfaces";
-import { getTresasuryConfig } from "./api-functions/get-treasury-config";
+import { getWhitelistStatus } from "./api-functions/get-whitelist-status-v2";
+import { TreasuryConfig } from "./interfaces-v2";
+import { getTresasuryConfig } from "./api-functions/get-treasury-config-v2";
 import { SOLANA_MOCK_SYMBOL, USDM0_TOKEN_CODE } from "./consts";
-import { getBalance } from "./api-functions/get-balance";
-import { deserializeAccountMetas, signAndSendInstructions } from "./funcs";
-import { redeem } from "./api-functions/redeem";
+import { getBalance } from "./api-functions/get-balance-v2";
+import { deserializeAccountMetas, requireTreasuryLookupTableAddress, signAndSendInstructionsV0WithLookupTable } from "./funcs-v2";
+import { getSolanaCollateralPriceAttestation } from "./api-functions/get-collateral-price-attestation-v2";
+import { getSolanaRedeemPermit } from "./api-functions/get-solana-redeem-permit-v2";
+import { redeem } from "./api-functions/redeem-v2";
 import {
     readBalance,
     validateOneToOneRedemption,
 } from "./balance-validation";
 
+import { getM1ApiV2BaseUrl } from "./api-functions/api-base";
 /**********************************************************************************
  * Node comand to peform a redemption of USDM0 for mock collateral on Solana Devnet.
  * 
@@ -52,8 +55,6 @@ pgm.version("0.0.1")
     .parse(process.argv);
 
 const options = pgm.opts();
-const REDEMPTION_DETAILS_PATH = "redemption-details.json";
-
 (async () => {
 
     // make sure there is an rpc endpoint to talk to
@@ -78,7 +79,7 @@ const REDEMPTION_DETAILS_PATH = "redemption-details.json";
 
     console.info(`operating as ${keypair.publicKey.toBase58()}`);
     console.info(`[solana] cluster=devnet rpc=${process.env.SOLANA_DEVNET_RPC_URL}`);
-    console.info(`[solana] api base url=${process.env.M1_API_BASE_URL}`);
+    console.info(`[solana] api base url=${getM1ApiV2BaseUrl()}`);
     console.info(`[solana] flow=redeem amount=${amount} inputToken=${USDM0_TOKEN_CODE}`);
 
     // First things first, check the whitelist status.
@@ -97,6 +98,7 @@ const REDEMPTION_DETAILS_PATH = "redemption-details.json";
         console.error("no treasury config");
         return;
     }
+    const lookupTableAddress = requireTreasuryLookupTableAddress(config);
 
     if (!config.usdm1) {
         console.error("no usdm1 configured for treasury");
@@ -149,11 +151,42 @@ const REDEMPTION_DETAILS_PATH = "redemption-details.json";
     }
 
     console.info(`redeeming ${amount} of ${USDM0_TOKEN_CODE} for collateral ${mock.mintAddress} (${mock.symbol})`);
+    const recipientAddress = keypair.publicKey.toBase58();
+    const collateralRequiresAttestation = mock.requiresAttestation !== false;
+    const collateralAttestation = collateralRequiresAttestation
+        ? await getSolanaCollateralPriceAttestation(
+            keypair.publicKey.toBase58(),
+            "redeem",
+            mock.mintAddress,
+            true
+        )
+        : undefined;
+    if (collateralRequiresAttestation && !collateralAttestation) {
+        console.error("failed to fetch price attestation for MOCK");
+        return;
+    }
+    const redeemPermit = await getSolanaRedeemPermit(
+        keypair.publicKey.toBase58(),
+        recipientAddress,
+        USDM0_TOKEN_CODE,
+        mock.mintAddress,
+        amount,
+        true
+    );
+    if (!redeemPermit) {
+        console.error("failed to fetch a redeem permit");
+        return;
+    }
+
     const serializedIx = await redeem(
         keypair.publicKey.toBase58(),
+        recipientAddress,
         USDM0_TOKEN_CODE,
         amount,
         mock.mintAddress,
+        collateralAttestation,
+        undefined,
+        redeemPermit,
         true
     );
 
@@ -168,23 +201,12 @@ const REDEMPTION_DETAILS_PATH = "redemption-details.json";
         data: Buffer.from(ix.data, "base64"),
     }));
 
-    await signAndSendInstructions(connection, instructions, keypair);
-
-    fs.writeFileSync(REDEMPTION_DETAILS_PATH, JSON.stringify({
-        chain: "solana",
-        redeemer: keypair.publicKey.toBase58(),
-        amount,
-        inputToken: USDM0_TOKEN_CODE,
-        inputDecimals: config.usdm0?.decimals,
-        outputToken: SOLANA_MOCK_SYMBOL,
-        outputDecimals: mock.decimals,
-        collateralAddress: mock.mintAddress,
-        before: {
-            USDM0: balancesBeforeRedemption.USDM0.toString(),
-            MOCK: balancesBeforeRedemption.MOCK.toString(),
-        },
-        timestamp: new Date().toISOString(),
-    }, null, 2));
+    await signAndSendInstructionsV0WithLookupTable(
+        connection,
+        instructions,
+        keypair,
+        lookupTableAddress
+    );
 
     // Re-fetch and report balances of both USDM0 and MOCK.
     usdm0Balance = await getBalance(

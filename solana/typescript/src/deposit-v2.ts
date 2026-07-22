@@ -10,21 +10,25 @@ import "dotenv/config";
 
 import { Command } from "commander-ts";
 
-import { getWhitelistStatus } from "./api-functions/get-whitelist-status";
-import { TreasuryConfig } from "./interfaces";
-import { getTresasuryConfig } from "./api-functions/get-treasury-config";
+import { getWhitelistStatus } from "./api-functions/get-whitelist-status-v2";
+import { TreasuryConfig } from "./interfaces-v2";
+import { getTresasuryConfig } from "./api-functions/get-treasury-config-v2";
 import { SOLANA_MOCK_SYMBOL, USDM1_TOKEN_CODE } from "./consts";
-import { getBalance } from "./api-functions/get-balance";
-import { faucet } from "./api-functions/faucet";
-import { deposit } from "./api-functions/deposit";
+import { getBalance } from "./api-functions/get-balance-v2";
+import { faucet } from "./api-functions/faucet-v2";
+import { deposit } from "./api-functions/deposit-v2";
+import { getSolanaCollateralPriceAttestation } from "./api-functions/get-collateral-price-attestation-v2";
+import { getSolanaDepositPermit } from "./api-functions/get-solana-deposit-permit-v2";
+import { getSolanaUsdm1PriceAttestation } from "./api-functions/get-usdm1-price-attestation-v2";
 import { createAssociatedTokenAccountIdempotent, getAssociatedTokenAddress } from "@solana/spl-token";
-import { deserializeIxSignAndSend } from "./funcs";
+import { deserializeAccountMetas, requireTreasuryLookupTableAddress, signAndSendInstructionsV0WithLookupTable } from "./funcs-v2";
 import { sleep } from "./api-functions/util";
 import {
     readBalance,
     validateHeuristicBalanceChange,
 } from "./balance-validation";
 
+import { getM1ApiV2BaseUrl } from "./api-functions/api-base";
 /**********************************************************************************
  * Node comand to peform a deposit of mock collateral for USDM1 on Solana Devnet.
  * 
@@ -80,7 +84,7 @@ const options = pgm.opts();
 
     console.info(`operating as ${keypair.publicKey.toBase58()}`);
     console.info(`[solana] cluster=devnet rpc=${process.env.SOLANA_DEVNET_RPC_URL}`);
-    console.info(`[solana] api base url=${process.env.M1_API_BASE_URL}`);
+    console.info(`[solana] api base url=${getM1ApiV2BaseUrl()}`);
     console.info(`[solana] flow=deposit amount=${amount} token=${USDM1_TOKEN_CODE}`);
 
     // First things first, check the whitelist status.
@@ -99,6 +103,7 @@ const options = pgm.opts();
         console.error("no treasury config");
         return;
     }
+    const lookupTableAddress = requireTreasuryLookupTableAddress(config);
 
     if (!config.usdm1) {
         console.error("no usdm1 configured for treasury");
@@ -207,24 +212,72 @@ const options = pgm.opts();
     console.info("waiting for ATA creation...");
     await sleep(5000);
 
+    const recipientAddress = keypair.publicKey.toBase58();
+    const collateralRequiresAttestation = mock.requiresAttestation !== false;
+    const collateralAttestation = collateralRequiresAttestation
+        ? await getSolanaCollateralPriceAttestation(
+            keypair.publicKey.toBase58(),
+            "deposit",
+            mock.mintAddress,
+            true
+        )
+        : undefined;
+    if (collateralRequiresAttestation && !collateralAttestation) {
+        console.error("failed to fetch price attestation for MOCK");
+        return;
+    }
+    const tokenAttestation = await getSolanaUsdm1PriceAttestation(
+        keypair.publicKey.toBase58(),
+        "deposit",
+        mock.mintAddress,
+        true
+    );
+    if (!tokenAttestation) {
+        console.error("failed to fetch price attestation for USDM1");
+        return;
+    }
+    const depositPermit = await getSolanaDepositPermit(
+        keypair.publicKey.toBase58(),
+        recipientAddress,
+        USDM1_TOKEN_CODE,
+        mock.mintAddress,
+        amount,
+        true
+    );
+    if (!depositPermit) {
+        console.error("failed to fetch a deposit permit");
+        return;
+    }
+
     const serializedIx = await deposit(
         keypair.publicKey.toBase58(),
+        recipientAddress,
         mock.mintAddress,
         amount,
         USDM1_TOKEN_CODE,
+        collateralAttestation,
+        tokenAttestation,
+        depositPermit,
         true
     );
 
-    if (!serializedIx) {
+    if (!serializedIx || !Array.isArray(serializedIx)) {
         console.error("no transaction from server");
         return;
     }
 
-    console.info(
-        `[solana] deposit instruction program=${serializedIx.programId} ` +
-        `accounts=${serializedIx.keys.length} dataLength=${serializedIx.data.length}`
+    const instructions = serializedIx.map((ix) => ({
+        keys: deserializeAccountMetas(ix.keys),
+        programId: new anchor.web3.PublicKey(ix.programId),
+        data: Buffer.from(ix.data, "base64"),
+    }));
+
+    await signAndSendInstructionsV0WithLookupTable(
+        connection,
+        instructions,
+        keypair,
+        lookupTableAddress
     );
-    await deserializeIxSignAndSend(connection, serializedIx, keypair);
 
     // Re-fetch and report balances of both mock and USDM1
     mockBalance = await getBalance(

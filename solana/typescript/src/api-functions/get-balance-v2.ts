@@ -1,8 +1,8 @@
-import { getM1ApiV1BaseUrl } from "./api-base";
-import { Balance } from "../interfaces";
-import { getTresasuryConfig } from "./get-treasury-config";
-import { getFromAPI } from "./get-from-api";
+import { Balance } from "../interfaces-v2";
+import { getTresasuryConfig } from "./get-treasury-config-v2";
+import { getFromAPI } from "./get-from-api-v2";
 
+import { getM1ApiV2BaseUrl } from "./api-base";
 /**********************************************************************************
  * Typescript function that calls the M1 API Solana endpoint for either 
  *  asset balances of USDM token balances.
@@ -34,7 +34,7 @@ export async function getBalance(
     if (symbol == "USDM0" || symbol == "USDM1") {
         // symbol is a USDM token
         const tokenId = +symbol.charAt(4);
-        url = `${getM1ApiV1BaseUrl()}/solana/usdm/${tokenId}/balances/${ownerAddress}`;
+        url = `${getM1ApiV2BaseUrl()}/solana/usdm/${tokenId}/balances/${ownerAddress}`;
     } else {
         // Check if the symbol is a collateral supported by the Treasury
         const collateral = config?.collaterals?.find(col => col.symbol?.toLowerCase() == symbol.toLowerCase());
@@ -42,7 +42,7 @@ export async function getBalance(
             console.error(`symbol ${symbol} is not a valid collateral`);
             return;
         }
-        url = `${getM1ApiV1BaseUrl()}/solana/collaterals/${collateral.symbol}/balances/${ownerAddress}`;
+        url = `${getM1ApiV2BaseUrl()}/solana/collaterals/${collateral.symbol}/balances/${ownerAddress}`;
     }
 
     if (isTestnet) {

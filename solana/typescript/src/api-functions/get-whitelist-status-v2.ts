@@ -1,6 +1,7 @@
-import { WhitelistStatus } from "../interfaces";
-import { getFromAPI } from "./get-from-api";
+import { WhitelistStatus } from "../interfaces-v2";
+import { getFromAPI } from "./get-from-api-v2";
 
+import { getM1ApiV2BaseUrl } from "./api-base";
 /**********************************************************************************
  * Typescript function that calls the M1 API Solana endpoint for whitelist status
  *  and returns a WhitelistStatus object.
@@ -15,7 +16,7 @@ export async function getWhitelistStatus(
     chain: string,
     address: string): Promise<WhitelistStatus | undefined> {
 
-    let url = `${process.env.M1_API_BASE_URL}/solana/whitelist/${chain}/${address}`;
+    let url = `${getM1ApiV2BaseUrl()}/solana/whitelist/${chain}/${address}`;
 
     return await getFromAPI<WhitelistStatus>(url, true)
 }

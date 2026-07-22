@@ -1,6 +1,13 @@
+import { getM1ApiV2BaseUrl } from "./api-base";
 
-import { SerializedInstruction, SolanaDepositBody, SolanaRedemptionBody } from "../interfaces";
-import { postToAPI } from "./post-to-api";
+
+import {
+    SerializedInstruction,
+    SolanaPriceAttestationInput,
+    SolanaRedeemPermit,
+    SolanaRedemptionBody,
+} from "../interfaces-v2";
+import { postToAPI } from "./post-to-api-v2";
 
 /**********************************************************************************
  * Typescript function that calls the M1 API Solana endpoint for redemptions
@@ -18,30 +25,36 @@ import { postToAPI } from "./post-to-api";
  */
 export async function redeem(
     redeemerAddress: string,
+    recipientAddress: string,
     tokenCode: string,
     amount: string,
     collateralAddress: string,
+    collateralAttestation: SolanaPriceAttestationInput | undefined,
+    tokenAttestation: SolanaPriceAttestationInput | undefined,
+    redeemPermit: SolanaRedeemPermit,
     isTestnet = false,
-): Promise<SerializedInstruction | undefined> {
+): Promise<SerializedInstruction[] | undefined> {
 
-    // The base url for the M1 API must be added to the environment.
-    if (!process.env.M1_API_BASE_URL) {
-        console.error("no M1_API_BASE_URL set in environemnt!");
-        return;
-    }
-
-    const url = `${process.env.M1_API_BASE_URL}/solana/treasury/redemptions`;
+    const url = `${getM1ApiV2BaseUrl()}/solana/treasury/redemptions`;
 
     // POST payload
     const body: SolanaRedemptionBody = {
         redeemer: redeemerAddress,
+        recipient: recipientAddress,
         tokenCode,
         amount,
         collateral: collateralAddress,
+        redeemPermit,
         isTestnet,
+    }
+    if (collateralAttestation !== undefined) {
+        body.collateralAttestation = collateralAttestation;
+    }
+    if (tokenAttestation !== undefined) {
+        body.tokenAttestation = tokenAttestation;
     }
 
     console.info(`redeem request: ${JSON.stringify(body)}`);
 
-    return await postToAPI(url, body);
+    return await postToAPI<SerializedInstruction[]>(url, body);
 }
